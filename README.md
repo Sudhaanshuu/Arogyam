@@ -3,6 +3,7 @@
 Welcome to Arogyam-Kiosk - The A.I & ML based Health Assistant. This web application is designed to predict diseases using Artificial Intelligence and Machine Learning, providing diagnostic tools for early illness detection and promoting preventive health through data analysis.
 
 ## Table of Contents
+- [How To Use](#use)
 - [Features](#features)
 - [Datasets](#datasets)
 - [Machine Learning](#machine-learning)
@@ -20,6 +21,25 @@ Welcome to Arogyam-Kiosk - The A.I & ML based Health Assistant. This web applica
 - [Our Partners](#our-partners)
 - [Contact Us](#contact-us)
 - [About This Repo](#about-this-repo)
+
+
+# How to Use
+
+Follow these steps to set up and run the project:
+
+1. **Clone the Repository**: Clone the repository `git clone https://github.com/Sudhaanshuu/Arogyam.git`
+
+2. **Navigate to the Directory**: Use the command `cd Arogyam` to navigate to the specific directory.
+
+3. **Install Dependencies**: Run the command to download all the libraries of the Python engine. Use the command `pip install -r requirements.txt`.
+
+4. **Run the Streamlit App**: Execute the command `streamlit run su.py` in the terminal.
+
+5. **Navigate Back to Main Directory**: Go back to the main directory, which is 'arogyam', by using the command `cd ..`.
+
+6. **Open index.html**: Open the 'index.html' file with a live server.
+
+That's it! You have successfully set up and run the project.
 
 ## Features
 - *Home:* Overview of the Arogyam-Kiosk and its functionalities.
