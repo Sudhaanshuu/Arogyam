@@ -39,7 +39,7 @@ form.addEventListener('submit', e => {
 
     // Make button link to lobby
     joinButton.addEventListener('click', () => {
-        window.location.href = '/lobby.html';
+        window.location.href = 'lobby.html';
     });
 
     // Add button to meeting   
