@@ -7,20 +7,21 @@ Welcome to Arogyam-Kiosk - The A.I & ML based Health Assistant. This web applica
 - [Features](#features)
 - [Datasets](#datasets)
 - [Machine Learning](#machine-learning)
+- [NLP Based Bot](#bot)
 - [A.I Interface](#ai-interface)
 - [Medicine Prediction](#medicine-prediction)
 - [Early Disease Prediction](#early-disease-prediction)
 - [Book an Appointment](#book-an-appointment)
 - [Currently Active Disease](#currently-active-disease)
 - [Find Doctors](#find-doctors)
+- [Top Best Doctor](#best-doc)
 - [Health Insurance Comparison](#health-insurance-comparison)
-- [Ask Your Query](#ask-your-query)
+- [Ask Your Query to Doctor](#ask-your-query)
 - [Team](#team)
 - [Login](#login)
 - [Biometric Authentication](#biometric-authentication)
 - [Our Partners](#our-partners)
 - [Contact Us](#contact-us)
-- [About This Repo](#about-this-repo)
 
 
 ## How to Use
@@ -32,29 +33,43 @@ Follow these steps to set up and run the project:
 
 2. **Navigate to the Directory**: Use the command `cd Arogyam` to navigate to the specific directory.
 
-3. **Install Dependencies**: Run the command to download all the libraries of the Python engine. Use the command `pip install -r requirements.txt`.
+3. **Install Dependencies**: Run the command to download all the libraries of the Python engine. Use the command `pip install -r requirements.txt`
 
 4. **Run the Streamlit App**: Execute the command `streamlit run su.py` in the terminal.
 
-5. **Navigate Back to Main Directory**: Go back to the main directory, which is 'arogyam', by using the command `cd ..`.
+5. **Navigate Back to Main Directory**: Go back to the main directory, which is 'arogyam', by using the command `cd ..`
 
 6. **Open index.html**: Open the 'index.html' file with a live server.
 
 That's it! You have successfully set up and run the project.
 
 ## Features
-- *Home:* Overview of the Arogyam-Kiosk and its functionalities.
-- *Video Call:* Conduct video calls with healthcare professionals.
-- *About Us:* Learn more about our mission and vision.
-- *Our Models:* Details on the Machine Learning models used.
-- *Message Us:* Send messages and queries to our team.
-- *Contact Now:* Contact information and support details.
+
+- **Video Call**: This feature allows users to conduct video calls with healthcare professionals. It provides a platform for real-time interaction and consultation.
+
+- **ML Models**: The application incorporates various Machine Learning models. These models are used to analyze data, make predictions, and provide personalized healthcare recommendations.
+
+- **Contact Now**: Users can find contact information and support details. This feature ensures that help is just a click away.
+
+- **NLP Bot**: The application includes a Natural Language Processing (NLP) bot. This bot can understand and respond to user queries in a natural, conversational manner.
+
+- **Appointment Booking**: Users can conveniently book appointments with doctors. This feature simplifies the process of scheduling healthcare appointments.
+
+- **Locate Doctor**: This feature helps users find doctors in various locations. It makes it easier for users to access healthcare services.
+
+- **Ask Doctor**: This feature allows users to directly ask queries to doctors. It bridges the gap between users and healthcare professionals, ensuring that users' health concerns are addressed promptly.
+
+These features are designed to provide a comprehensive and user-friendly healthcare experience. The application aims to make healthcare more accessible and personalized for each user.
+
 
 ## Datasets
 This project utilizes a vast amount of datasets for accurate disease prediction.
 
 ## Machine Learning
 Multiple ML models are employed for disease prediction.
+
+## NLP Bot
+We develop an Ai Bot using the NLP
 
 ## A.I Interface
 We aim to make the entire system A.I Interface based for user convenience.
@@ -75,13 +90,15 @@ Schedule appointments, view upcoming meetings, and get meeting details.
 ## Currently Active Disease
 Stay informed about currently active diseases with visual representations.
 
-## Find Doctors
+## Find Doctors On Your City
 Search for doctors in your city, view top doctors, and book appointments.
+## Find Best Doctors On Your City
+list of best doctors in your city, view top doctors.
 
 ## Health Insurance Comparison
 Compare health insurance plans for informed decision-making.
 
-## Ask Your Query
+## Ask Your Query To Doctor
 Ask health-related queries to our team.
 
 ## Team
@@ -99,9 +116,6 @@ Use biometric authentication for added security.
 
 ## Our Partners
 Companies that trust us.
-
-## About This Repo
-This Repo is for the submission of this hackathon project
 
 ## Contact Us
 Feel free to send us a message or call us at +91 8252228793. We value your thoughts and feedback.
