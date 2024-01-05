@@ -37,7 +37,7 @@ Follow these steps to set up and run the project:
 
 4. **Run the Streamlit App**: Execute the command `streamlit run su.py` in the terminal.
 
-5. **Navigate Back to Main Directory**: Go back to the main directory, which is 'arogyam', by using the command `cd ..`
+5. **Navigate Back to Main Directory**: Go back to the main directory, which is 'Arogyam', by using the command `cd ..`
 
 6. **Open index.html**: Open the 'index.html' file with a live server.
 
