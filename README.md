@@ -19,6 +19,7 @@ Welcome to Arogyam-Kiosk - The A.I & ML based Health Assistant. This web applica
 - [Biometric Authentication](#biometric-authentication)
 - [Our Partners](#our-partners)
 - [Contact Us](#contact-us)
+- [About This Repo](#about-this-repo)
 
 ## Features
 - *Home:* Overview of the Arogyam-Kiosk and its functionalities.
@@ -77,6 +78,9 @@ Use biometric authentication for added security.
 
 ## Our Partners
 Companies that trust us.
+
+## About This Repo
+This Repo is for the submission of this hackathon project
 
 ## Contact Us
 Feel free to send us a message or call us at +91 8252228793. We value your thoughts and feedback.
