@@ -1,0 +1,1035 @@
+body {
+    margin: 0;
+    padding: 0;
+    font-family: sans-serif;
+    background: #34495e;
+}
+
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    z-index: 1000;
+    overflow: auto;
+}
+
+.box {
+    width: 1000px;
+    padding: 40px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-family: Poppins;
+    background: linear-gradient(45deg, #ff0000, #ff5733, #ff6348);
+    text-align: center;
+}
+
+.box h1 {
+    color: white;
+    text-transform: uppercase;
+    font-weight: 500;
+}
+
+.box input[type="text"],
+.box input[type="password"] {
+    border: 0;
+    background: none;
+    display: block;
+    margin: 20px auto;
+    text-align: center;
+    border: 2px solid #3498db;
+    padding: 14px 10px;
+    width: 200px;
+    outline: none;
+    color: white;
+    border-radius: 24px;
+    transition: 0.25s;
+}
+
+.box input[type="text"]:focus,
+.box input[type="password"]:focus {
+    width: 280px;
+    border-color: #2ecc71;
+}
+
+.box input[type="submit"] {
+    border: 0;
+    background: none;
+    display: block;
+    margin: 20px auto;
+    text-align: center;
+    border: 2px solid #2ecc71;
+    padding: 14px 40px;
+    outline: none;
+    color: white;
+    border-radius: 24px;
+    transition: 0.25s;
+    cursor: pointer;
+}
+
+.box input[type="submit"]:hover {
+    background: #2ecc71;
+}
+
+.close {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    color: white;
+    font-size: 30px;
+    cursor: pointer;
+}
+
+#bio-auth-modal {
+    background: linear-gradient(45deg, #ff0000, #ff5733, #ff6348);
+}
+
+#image-modal {
+    background: linear-gradient(45deg, #2ecc71, #27ae60);
+}
+
+
+/* Bot */
+
+.chatbot {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 300px;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    background: #fff;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+    display: none;
+    flex-direction: column;
+    z-index: 9999;
+}
+
+.chat-header {
+    background: #fe3f40;
+    color: #fff;
+    padding: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+}
+
+.close-button {
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 20px;
+    cursor: pointer;
+}
+
+.chat-content {
+    padding: 10px;
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+.message {
+    margin: 5px;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.received {
+    background: #f0f0f0;
+}
+
+.sent {
+    background: #fe3f40;
+    color: #fff;
+    align-self: flex-end;
+}
+
+.chat-input {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    border-top: 1px solid #ccc;
+}
+
+#user-input {
+    flex: 1;
+    padding: 5px 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    max-width: 70%;
+}
+
+#send-button {
+    background: #fe3f40;
+    color: #fff;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-left: 10px;
+    margin-top: -10px;
+}
+
+#mic-button {
+    background: #fe3f40;
+    color: #fff;
+    border: none;
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-left: 10px;
+    margin-top: -10px;
+}
+
+.bot-icon {
+    width: 40px;
+    height: 40px;
+    background-color: #fe3f40;
+    border-radius: 50%;
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    display: none;
+    cursor: pointer;
+}
+
+#chatbot.small .chat-header {
+    display: none;
+}
+
+#chatbot.small .chat-content {
+    display: none;
+}
+
+#chatbot.small #chat-input {
+    display: none;
+}
+
+#chatbot.small #close-button {
+    display: none;
+}
+
+#chatbot.small .bot-name {
+    display: block;
+    text-align: center;
+    background: #fe3f40;
+    color: #fff;
+    padding: 5px;
+    border-radius: 0 0 10px 10px;
+    cursor: pointer;
+}
+
+
+/* Additional styles for the chatbot when it's expanded  */
+
+#chatbot.expanded {
+    width: 300px;
+    height: auto;
+}
+
+#chat-content.expanded {
+    display: block;
+    max-height: 250px;
+    overflow-y: auto;
+}
+
+#chat-input.expanded {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px;
+    border-top: 1px solid #ccc;
+}
+
+
+/* Bio mertric  */
+
+.bio-auth-container {
+    text-align: center;
+    padding: 20px;
+}
+
+.bio-auth-image {
+    width: 200px;
+    height: auto;
+    /* animation: pulse 2s infinite; */
+}
+
+.bio-auth-instructions {
+    font-size: 18px;
+    margin-top: 10px;
+}
+
+
+/* contact */
+
+.section-title {
+    text-align: center;
+}
+
+.contact .info {
+    border-top: 3px solid #fe3f40;
+    border-bottom: 3px solid #fe3f40;
+    padding: 30px;
+    background: #fff;
+    width: 100%;
+    box-shadow: 0 0 24px 0 rgba(0, 0, 0, 0.12);
+}
+
+.contact .info i {
+    font-size: 20px;
+    color: #fe3f40;
+    float: left;
+    width: 44px;
+    height: 44px;
+    background: #fdf1ec;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 50px;
+    transition: all 0.3s ease-in-out;
+}
+
+.contact .info h4 {
+    padding: 0 0 0 60px;
+    font-size: 22px;
+    font-weight: 600;
+    margin-bottom: 5px;
+    color: #7a6960;
+}
+
+.contact .info p {
+    padding: 0 0 10px 60px;
+    margin-bottom: 20px;
+    font-size: 14px;
+    color: #ab9d95;
+}
+
+.contact .info .email p {
+    padding-top: 5px;
+}
+
+.contact .info .email:hover i,
+.contact .info .address:hover i,
+.contact .info .phone:hover i {
+    background: #fe3f40;
+    color: #fff;
+}
+
+.contact .php-email-form {
+    width: 100%;
+    border-top: 3px solid #fe3f40;
+    border-bottom: 3px solid #fe3f40;
+    padding: 30px;
+    background: #fff;
+    box-shadow: 0 0 24px 0 rgba(0, 0, 0, 0.12);
+}
+
+.contact .php-email-form .form-group {
+    padding: 8px 8px;
+}
+
+.form-group,
+.button {
+    padding: 8px 18px;
+}
+
+.contact .php-email-form .validate {
+    display: none;
+    color: fe3f40;
+    margin: 0;
+    font-weight: 400;
+    font-size: 13px;
+}
+
+.contact .php-email-form .error-message {
+    display: none;
+    color: #fff;
+    background: #fe3f40;
+    text-align: center;
+    padding: 15px;
+    font-weight: 600;
+}
+
+.contact .php-email-form .sent-message {
+    display: none;
+    color: #fff;
+    background: #18d26e;
+    text-align: center;
+    padding: 15px;
+    font-weight: 600;
+}
+
+.contact .php-email-form .loading {
+    display: none;
+    background: #fff;
+    text-align: center;
+    padding: 15px;
+}
+
+.contact .php-email-form .loading:before {
+    content: "";
+    display: inline-block;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    margin: 0 10px -6px 0;
+    border: 3px solid #18d26e;
+    border-top-color: #eee;
+    -webkit-animation: animate-loading 1s linear infinite;
+    animation: animate-loading 1s linear infinite;
+}
+
+.contact .php-email-form input,
+.contact .php-email-form textarea {
+    border-radius: 0;
+    box-shadow: none;
+    font-size: 14px;
+}
+
+.contact .php-email-form input {
+    height: 44px;
+}
+
+.contact .php-email-form textarea {
+    padding: 10px 12px;
+}
+
+.contact .php-email-form button[type="submit"] {
+    background: #fe3f40;
+    border: 0;
+    padding: 10px 24px;
+    color: #fff;
+    transition: 0.4s;
+    border-radius: 4px;
+}
+
+.contact .php-email-form button[type="submit"]:hover {
+    background: #fe3f40;
+}
+
+.info button {
+    margin-bottom: 20px;
+}
+
+@-webkit-keyframes animate-loading {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes animate-loading {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.Su {
+    position: relative;
+    text-align: center;
+}
+
+.background-image {
+    width: 100%;
+    height: auto;
+}
+
+
+/* Media query for screens smaller than 768px */
+
+@media (max-width: 768px) {
+    .Su .main-red-button {
+        font-size: 16px;
+    }
+}
+
+.Su {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 20vh;
+    overflow: hidden;
+}
+
+.background-image {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.Su .main-red-button {
+    position: absolute;
+    bottom: 10%;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 10px 20px;
+    background-color: #ff0000;
+    color: #fff;
+    text-decoration: none;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    text-align: center;
+}
+
+.main-red-button a {
+    color: #fff;
+    text-decoration: none;
+}
+
+
+/* Sub-texting */
+
+section {
+    padding: 60px 0;
+}
+
+.section-bg {
+    background-color: #fef8f5;
+}
+
+.section-title {
+    text-align: center;
+    padding-bottom: 30px;
+}
+
+.section-title h2 {
+    font-size: 24px;
+    font-weight: 700;
+    padding-bottom: 0;
+    line-height: 1px;
+    margin-bottom: 15px;
+    color: #000000;
+}
+
+.section-title p {
+    padding-bottom: 15px;
+    margin-bottom: 15px;
+    position: relative;
+    font-size: 32px;
+    font-weight: 700;
+    color: #000000;
+}
+
+.section-title p::after {
+    content: '';
+    position: absolute;
+    display: block;
+    width: 60px;
+    height: 2px;
+    background: #eb5d1e;
+    bottom: 0;
+    left: calc(50% - 30px);
+}
+
+
+/* Team members */
+
+.team {
+    background: #fff;
+    /* padding: 60px 0; */
+}
+
+.team .member {
+    text-align: center;
+    margin-bottom: 0px;
+    background: #343a40;
+    position: relative;
+    overflow: hidden;
+    /* min-width: 25rem;
+    min-height: 25rem;
+    max-width: 125rem;
+    max-height: 125rem; */
+}
+
+.team .member .member-info {
+    opacity: 0;
+    position: absolute;
+    bottom: 0;
+    top: 0;
+    left: 0;
+    right: 0;
+    transition: 0.2s;
+}
+
+.team .member .member-info-content {
+    position: absolute;
+    left: 50px;
+    right: 0;
+    bottom: 0;
+    transition: bottom 0.4s;
+}
+
+.team .member .member-info-content h4 {
+    font-weight: 700;
+    margin-bottom: 2px;
+    font-size: 18px;
+    color: #fff;
+}
+
+.team .member .member-info-content span {
+    font-style: italic;
+    display: block;
+    font-size: 13px;
+    color: #fff;
+}
+
+.team .member .social {
+    position: absolute;
+    left: -50px;
+    top: 0;
+    bottom: 0;
+    width: 50px;
+    transition: left ease-in-out 0.3s;
+    background: rgba(78, 64, 57, 0.6);
+    text-align: center;
+}
+
+.team .member .social a {
+    transition: color 0.3s;
+    display: block;
+    color: #fff;
+    margin-top: 15px;
+}
+
+.team .member .social a:hover {
+    color: #eb5d1e;
+}
+
+.team .member .social i {
+    font-size: 18px;
+    margin: 0 2px;
+}
+
+.team .member:hover .member-info {
+    background: linear-gradient(0deg, rgba(78, 64, 57, 0.95) 0%, rgba(78, 64, 57, 0.95) 15%, rgba(255, 255, 255, 0) 100%);
+    opacity: 1;
+    transition: 0.4s;
+}
+
+.team .member:hover .member-info-content {
+    bottom: 30px;
+    transition: bottom 0.4s;
+}
+
+.team .member:hover .social {
+    left: 0;
+    transition: left ease-in-out 0.3s;
+}
+
+
+/* schedules appointments */
+
+#container {
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+    width: 100%;
+    max-width: 400px;
+    margin: 20px auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-family: Poppins;
+}
+
+
+/* Theme Styling */
+
+#meeting {
+    background-color: #fff;
+    padding: 30px 0;
+}
+
+.section-title {
+    text-align: center;
+}
+
+.section-title h2 {
+    font-size: 32px;
+    color: #fe3f40;
+}
+
+.info {
+    max-width: 800px;
+    margin: 0 auto;
+    border: 2px solid #fe3f40;
+    padding: 30px;
+    border-radius: 4px;
+    box-shadow: 0 0 10px #ddd;
+}
+
+
+/* Form Styling */
+
+form {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+form label {
+    font-weight: bold;
+}
+
+form input,
+form select {
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+form input[type="submit"] {
+    background-color: #fe3f40;
+    color: #fff;
+    border: none;
+    cursor: pointer;
+}
+
+
+/* Meetings Section */
+
+.meeting-item {
+    border: 1px solid #ddd;
+    padding: 20px;
+    border-radius: 4px;
+}
+
+
+/* Responsive */
+
+@media (max-width: 700px) {
+    form {
+        grid-template-columns: 1fr;
+    }
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+}
+
+label {
+    display: block;
+    margin-bottom: 5px;
+}
+
+input {
+    width: 100%;
+    padding: 8px;
+    margin-bottom: 10px;
+    box-sizing: border-box;
+}
+
+button {
+    background-color: #fe3f40;
+    color: #fff;
+    border: none;
+    padding: 10px;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+@media (max-width: 600px) {
+    #container {
+        border-radius: 0;
+    }
+}
+
+
+/* Keyframe animation for pulsating effect */
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.1);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+#map {
+    width: 100%;
+    height: 290px;
+}
+
+.doctors {
+    background-color: #ffffff;
+    padding: 30px 0;
+}
+
+.section-title {
+    text-align: center;
+}
+
+.section-title h2 {
+    font-size: 32px;
+    color: #fe3f40;
+}
+
+.info {
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+    background-color: #fff;
+    border: 2px solid #fe3f40;
+    padding: 30px;
+    border-radius: 4px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+}
+
+
+/* Styling */
+
+
+/* Animations */
+
+#doctorsList h4,
+#doctorsList p {
+    opacity: 0;
+    transform: translateY(15px);
+    transition: all 0.5s ease;
+}
+
+#doctorsList.animate h4,
+#doctorsList.animate p {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.doctors {
+    background-color: #ffffff;
+    padding: 30px 0;
+}
+
+.section-title {
+    text-align: center;
+}
+
+.section-title h2 {
+    font-size: 32px;
+    color: #fe3f40;
+}
+
+.info {
+    width: 100%;
+    max-width: 800px;
+    margin: 0 auto;
+    background-color: #fff;
+    border: 2px solid #fe3f40;
+    padding: 30px;
+    border-radius: 4px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+}
+
+
+/* Form styling */
+
+form label {
+    display: block;
+}
+
+form input,
+form textarea {
+    width: 100%;
+    padding: 10px;
+    margin-bottom: 20px;
+    border: 1px solid #ddd;
+}
+
+form button {
+    background-color: #fe3f40;
+    color: #fff;
+    padding: 10px 20px;
+}
+
+
+/* Same CSS as before */
+
+#quotes {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-gap: 30px;
+}
+
+.quote {
+    border: 1px solid #ddd;
+    padding: 20px;
+}
+
+#best {
+    margin-top: 30px;
+    padding: 20px;
+    background-color: #eaf8e6;
+    border: 1px solid #badbcc;
+}
+
+#loginSection {
+    padding: 20px 0;
+    background: #fff;
+}
+
+.section-title {
+    text-align: center;
+}
+
+.section-title h2 {
+    color: #fe3f40;
+    font-size: 32px;
+}
+
+.login-form {
+    max-width: 480px;
+    margin: 20px auto;
+    border: 2px solid #fe3f40;
+    padding: 8px 18px;
+    border-radius: 4px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    color: #666;
+}
+
+.form-group input {
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    width: 100%;
+}
+
+button[type="submit"] {
+    display: block;
+    background: #fe3f40;
+    border: 0;
+    color: #fff;
+    border-radius: 4px;
+    padding: 8px;
+    width: 100%;
+    cursor: pointer;
+}
+
+.auth-container {
+    padding: 10px 10px;
+    display: flex;
+    justify-content: space-between;
+}
+
+#loginSection,
+#bioAuth {
+    width: calc(50% - 10px);
+}
+
+@media (max-width: 768px) {
+    .auth-container {
+        flex-direction: column;
+    }
+    #loginSection,
+    #bioAuth {
+        width: 100%;
+    }
+}
+
+.bioAuth {
+    max-width: 480px;
+    margin: 20px auto;
+    border: 2px solid #fe3f40;
+    padding: 30px;
+    border-radius: 4px;
+}
+
+.bio-auth-image {
+    max-width: 480px;
+    margin: 20px auto;
+    border: 2px solid #fe3f40;
+    padding: 30px;
+    border-radius: 4px;
+}
+
+.company-logos {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.company-logos img {
+    width: 100%;
+    opacity: 0.8;
+    transition: 0.3s;
+    margin: 0 10px;
+}
+
+.company-logos img:hover {
+    opacity: 1;
+}
+
+.company-logos .owl-nav,
+.company-logos .owl-dots {
+    margin-top: 5px;
+    text-align: center;
+}
+
+.company-logos .owl-dot {
+    display: inline-block;
+    margin: 0 5px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background-color: #fbe2d8 !important;
+}
+
+.company-logos .owl-dot.active {
+    background-color: #fe3f40 !important;
+}
+
+.image-section {
+    margin-bottom: 45px;
+}
+
+.image-section img {
+    width: 100%;
+    border: 2px solid #fe3f40;
+    transition: transform .2s;
+}
+
+.image-section .row:nth-child(2) img:hover {
+    transform: scale(1.2);
+}
+
+.image-section .row:first-child {
+    text-align: center;
+}
+
+.image-section .row:first-child img {
+    max-width: 70%;
+    display: inline-block;
+}
+
+@media (max-width: 768px) {
+    .col-md-4 {
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+}
