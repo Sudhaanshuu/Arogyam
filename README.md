@@ -27,7 +27,7 @@ Welcome to Arogyam-Kiosk - The A.I & ML based Health Assistant. This web applica
 
 Follow these steps to set up and run the project:
 
-1. **Clone the Repository**: Clone the repository
+1. **Clone the Repository**: Clone the repository <br>
  `git clone https://github.com/Sudhaanshuu/Arogyam.git`
 
 2. **Navigate to the Directory**: Use the command `cd Arogyam` to navigate to the specific directory.
