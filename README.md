@@ -31,7 +31,7 @@ Follow these steps to set up and run the project:
 1. **Clone the Repository**: Clone the repository <br>
  `git clone https://github.com/Sudhaanshuu/Arogyam.git`
 
-2. **Navigate to the Directory**: Use the command `cd Arogyam` to navigate to the specific directory.
+2. **Navigate to the Directory**: Use the command `cd Arogyam/Model` to navigate to the specific directory.
 
 3. **Install Dependencies**: Run the command to download all the libraries of the Python engine. Use the command `pip install -r requirements.txt`
 
