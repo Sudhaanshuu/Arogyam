@@ -21,7 +21,7 @@ body {
     margin: 0;
     padding: 0;
     font-family: sans-serif;
-    background: #34495e;
+    /* background: #34495e; */
 }
 
 .modal {
@@ -921,7 +921,7 @@ form button {
 .login-form {
     max-width: 480px;
     margin: 20px auto;
-    border: 2px solid #fe3f40;
+    border: 2px solid #ff4545;
     padding: 8px 18px;
     border-radius: 4px;
 }
