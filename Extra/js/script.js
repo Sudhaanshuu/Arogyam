@@ -1,3 +1,4 @@
+// For the floating login page
 const loginModal = document.getElementById("login-modal");
 const closeModal = document.getElementById("close-modal");
 
