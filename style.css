@@ -1052,3 +1052,7 @@ button[type="submit"] {
         max-width: 100%;
     }
 }
+
+.sign {
+    background-color: red;
+}
