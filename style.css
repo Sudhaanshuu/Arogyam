@@ -1055,4 +1055,6 @@ button[type="submit"] {
 
 .sign {
     background-color: red;
+    padding: auto;
+    margin: auto;
 }
