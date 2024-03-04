@@ -518,12 +518,17 @@
                     <form action="https://formspree.io/f/xayryekp" method="post" role="form" class="php-email-form">
                         <div class="form-group">
                             <label for="name">Your Name</label>
-                            <input type="text" name="name" class="form-control" id="name" required>
+                            <input type="text" name="name" class="form-control" id="name" required placeholder="Human Prasad">
                         </div>
+                        <div class="form-group">
+                            <label for="name">Your E-mail Id</label>
+                            <input type="text" name="email" id="email" pattern="[^ @]*@[^ @]*" placeholder="Human@live.com" required="">
+                        </div>
+
 
                         <div class="form-group">
                             <label for="age">Age</label>
-                            <input type="number" class="form-control" name="age" id="age">
+                            <input type="number" class="form-control" name="age" id="age" placeholder="23">
                         </div>
 
                         <div class="form-group">
@@ -535,7 +540,7 @@
                         </div>
                         <div class="form-group">
                             <label for="question">Question</label>
-                            <textarea name="question" class="form-control" id="question" rows="5" required></textarea>
+                            <textarea name="question" class="form-control" id="question" placeholder="Ask Your Doubt" rows="5" required></textarea>
                         </div>
                         <div class="text-center">
                             <button type="submit">Submit Question</button>
