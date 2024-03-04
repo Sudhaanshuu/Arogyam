@@ -17,6 +17,7 @@ Welcome to Arogyam-Kiosk - The A.I & ML based Health Assistant. This web applica
 - [Top Best Doctor](#best-doc)
 - [Health Insurance Comparison](#health-insurance-comparison)
 - [Ask Your Query to Doctor](#ask-your-query)
+- [Check Medicine](#check-medicine)
 - [Team](#team)
 - [Login](#login)
 - [Biometric Authentication](#biometric-authentication)
