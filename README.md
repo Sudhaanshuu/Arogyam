@@ -101,12 +101,15 @@ Compare health insurance plans for informed decision-making.
 ## Ask Your Query To Doctor
 Ask health-related queries to our team.
 
+## Medicine Check
+Function to check medicine availability
+
 ## Team
 Meet the minds behind Arogyam-Kiosk:
 
 - Sudhanshu Kumar: Student, Coder, Designer
 - Aman Ujwal Toppo: Coder, Developer
-- Ankur Kumari: Student, C.v Raman
+
 
 ## Login
 Login to your account securely.
