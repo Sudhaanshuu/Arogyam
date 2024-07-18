@@ -1083,15 +1083,15 @@ button[type="submit"] {
 /* General Styles */
 
 #doctor-section {
-    margin-top: 90px;
     background-color: #fff;
     padding: 30px 0;
+    margin-top: 90px;
 }
 
 .doctor-card {
     display: flex;
     align-items: center;
-    max-width: 800px;
+    max-width: 1000px;
     margin: 20px auto;
     border: 2px solid #fe3f40;
     padding: 20px;
@@ -1114,6 +1114,8 @@ button[type="submit"] {
 
 .doctor-info {
     flex: 2;
+    padding-left: 20px;
+    border-left: 2px solid #fe3f40;
 }
 
 .doctor-info h3 {
@@ -1137,5 +1139,11 @@ button[type="submit"] {
     }
     .doctor-image {
         margin: 0 0 20px;
+    }
+    .doctor-info {
+        padding-left: 0;
+        border-left: none;
+        border-top: 2px solid #fe3f40;
+        padding-top: 20px;
     }
 }
