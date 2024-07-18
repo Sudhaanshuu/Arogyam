@@ -1078,3 +1078,64 @@ button[type="submit"] {
         max-width: 100%;
     }
 }
+
+
+/* General Styles */
+
+#doctor-section {
+    margin-top: 90px;
+    background-color: #fff;
+    padding: 30px 0;
+}
+
+.doctor-card {
+    display: flex;
+    align-items: center;
+    max-width: 800px;
+    margin: 20px auto;
+    border: 2px solid #fe3f40;
+    padding: 20px;
+    border-radius: 4px;
+    box-shadow: 0 0 10px #ddd;
+    background-color: #fff;
+}
+
+.doctor-image {
+    flex: 1;
+    max-width: 150px;
+    margin-right: 20px;
+}
+
+.doctor-image img {
+    width: 100%;
+    height: auto;
+    border-radius: 50%;
+}
+
+.doctor-info {
+    flex: 2;
+}
+
+.doctor-info h3 {
+    font-size: 24px;
+    color: #fe3f40;
+    margin: 0 0 10px;
+}
+
+.doctor-info p {
+    margin: 5px 0;
+    color: #333;
+}
+
+
+/* Responsive Styles */
+
+@media (max-width: 768px) {
+    .doctor-card {
+        flex-direction: column;
+        text-align: center;
+    }
+    .doctor-image {
+        margin: 0 0 20px;
+    }
+}
