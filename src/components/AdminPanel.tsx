@@ -76,7 +76,7 @@ const AdminPanel: React.FC = () => {
         .order('appointment_date', { ascending: false });
 
       if (error) throw error;
-      setAppointments(data || []);
+      setAppointments(data||[]);
     } catch (error) {
       console.error('Error fetching appointments:', error);
       toast.error('Failed to load appointments');

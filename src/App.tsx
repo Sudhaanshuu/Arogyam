@@ -16,6 +16,7 @@ import Login from './components/Login';
 import Signup from './components/Signup';
 import Profile from './components/Profile';
 import VerifyEmail from './components/VerifyEmail';
+import DoctorRegistration from './components/DoctorRegistration';
 import VideoCallFeature from './components/VideoCallPage'; // Import the new component
 
 function App() {
@@ -36,6 +37,7 @@ function App() {
               <ContactUs />
             </>
           } />
+          <Route path="/doctor-registration" element={<DoctorRegistration />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/profile" element={<Profile />} />
