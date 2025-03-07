@@ -36,17 +36,22 @@ const VideoCall = ({ channelName, onLeave }: VideoCallProps) => {
 
         client.on('user-published', async (user, mediaType) => {
           await client.subscribe(user, mediaType);
-          if (mediaType === 'video') {
-            setUsers(prevUsers => [...prevUsers, user]);
-          }
-          if (mediaType === 'audio') {
-            user.audioTrack?.play();
-          }
+          setUsers((prevUsers) => {
+            const existingUser = prevUsers.find(u => u.uid === user.uid);
+            if (existingUser) return prevUsers; // Avoid duplicates
+
+            return [...prevUsers, { ...user }];
+          });
         });
 
         client.on('user-unpublished', (user) => {
           setUsers(prevUsers => prevUsers.filter(u => u.uid !== user.uid));
         });
+
+        client.on('user-left', (user) => {
+          setUsers(prevUsers => prevUsers.filter(u => u.uid !== user.uid));
+        });
+
       } catch (error) {
         console.error('Error initializing video call:', error);
       }
@@ -106,10 +111,7 @@ const VideoCall = ({ channelName, onLeave }: VideoCallProps) => {
               animate={{ scale: 1, opacity: 1 }}
               className="relative bg-gray-800/50 rounded-xl overflow-hidden border-2 border-gray-700 backdrop-blur-sm"
             >
-              <div
-                ref={node => node && user.videoTrack?.play(node)}
-                className="w-full h-full aspect-video"
-              />
+              <div ref={node => node && user.videoTrack?.play(node)} className="w-full h-full aspect-video" />
               <div className="absolute bottom-4 left-4 text-white font-semibold bg-gray-900/50 px-3 py-1 rounded-lg">
                 User {user.uid} {!user.videoTrack && "(Video Off)"}
               </div>
