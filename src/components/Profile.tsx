@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Edit, User, Mail, Phone, MapPin } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Edit, User, Mail, Phone, MapPin, Calendar, Video, Clock } from 'lucide-react';
 import { supabase } from '../lib/supabase';
-import { getUserProfile, updateUserProfile } from '../lib/supabase';
+import { format } from 'date-fns';
 import toast from 'react-hot-toast';
 
 interface ProfileData {
@@ -13,187 +14,322 @@ interface ProfileData {
   city?: string;
 }
 
+interface Appointment {
+  id: string;
+  doctor: {
+    name: string;
+    specialty: string;
+  };
+  appointment_date: string;
+  status: string;
+  video_session_id: string;
+}
+
 const Profile: React.FC = () => {
+  const navigate = useNavigate();
   const [profile, setProfile] = useState<ProfileData>({});
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [isEditing, setIsEditing] = useState(false);
   const [editedProfile, setEditedProfile] = useState<ProfileData>({});
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
 
   useEffect(() => {
     fetchProfile();
+    fetchAppointments();
   }, []);
 
   const fetchProfile = async () => {
-    setLoading(true);
     try {
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      const { data: { user } } = await supabase.auth.getUser();
       
-      if (authError || !user) {
+      if (!user) {
         navigate('/login');
         return;
       }
-  
-      const { data, error } = await getUserProfile(user.id);
-  
-      if (error || !data) {
-        console.error("Error fetching profile:", error);
-        
-        // If the profile doesn't exist, create one
-        const { data: insertData, error: insertError } = await supabase
-          .from('profiles')
-          .insert([{ id: user.id, name: '', phone: '', city: '' }])
-          .select()
-          .single();
-        
-        if (insertError) {
-          toast.error('Failed to create profile');
-          console.error("Error creating profile:", insertError);
-          setLoading(false);
-          return;
-        }
-        
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (error && error.code === 'PGRST116') {
+        // Profile doesn't exist, create it
         const newProfile = {
-          ...insertData,
-          email: user.email
+          id: user.id,
+          email: user.email,
+          name: user.user_metadata?.name || '',
+          phone: '',
+          city: ''
         };
-        
+
+        const { error: insertError } = await supabase
+          .from('profiles')
+          .insert([newProfile]);
+
+        if (insertError) throw insertError;
+
         setProfile(newProfile);
         setEditedProfile(newProfile);
-        setLoading(false);
-        return;
+      } else if (error) {
+        throw error;
+      } else {
+        const profileData = {
+          ...data,
+          email: user.email
+        };
+        setProfile(profileData);
+        setEditedProfile(profileData);
       }
-  
-      const profileData = {
-        ...data,
-        email: user.email
-      };
-      
-      setProfile(profileData);
-      setEditedProfile(profileData);
     } catch (error) {
-      toast.error('An error occurred');
-      console.error(error);
+      console.error('Error fetching profile:', error);
+      toast.error('Failed to load profile');
     } finally {
       setLoading(false);
     }
   };
-  const handleUpdate = async () => {
+
+  const fetchAppointments = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) return;
 
-      if (!user) {
-        toast.error('Authentication error');
-        navigate('/login');
-        return;
-      }
+      const { data, error } = await supabase
+        .from('appointments')
+        .select(`
+          id,
+          appointment_date,
+          status,
+          video_session_id,
+          doctor:doctor_id (
+            name,
+            specialty
+          )
+        `)
+        .eq('user_id', user.id)
+        .order('appointment_date', { ascending: false });
 
-      const { error } = await updateUserProfile(user.id, {
-        name: editedProfile.name,
-        phone: editedProfile.phone,
-        city: editedProfile.city
-      });
+      if (error) throw error;
+      setAppointments(data || []);
+    } catch (error) {
+      console.error('Error fetching appointments:', error);
+      toast.error('Failed to load appointments');
+    }
+  };
 
-      if (error) {
-        toast.error('Failed to update profile');
-        console.error("Error updating profile:", error);
-        return;
-      }
+  const handleUpdate = async () => {
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          name: editedProfile.name,
+          phone: editedProfile.phone,
+          city: editedProfile.city
+        })
+        .eq('id', profile.id);
+
+      if (error) throw error;
 
       setProfile(editedProfile);
       setIsEditing(false);
       toast.success('Profile updated successfully');
     } catch (error) {
-      toast.error('An error occurred');
-      console.error(error);
+      console.error('Error updating profile:', error);
+      toast.error('Failed to update profile');
     }
   };
 
-  if (loading) return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-      <div className="text-red-600 text-xl">Loading profile...</div>
-    </div>
-  );
+  const generateMeetingId = () => {
+    return Math.random().toString(36).substring(2, 8).toUpperCase();
+  };
+
+  const joinVideoCall = async (appointmentId: string, existingSessionId?: string) => {
+    try {
+      let sessionId = existingSessionId;
+
+      if (!sessionId) {
+        sessionId = generateMeetingId();
+        
+        // Create new video session
+        const { error: sessionError } = await supabase
+          .from('video_sessions')
+          .insert([{
+            id: sessionId,
+            appointment_id: appointmentId,
+            status: 'active'
+          }]);
+
+        if (sessionError) throw sessionError;
+
+        // Update appointment with session ID
+        const { error: updateError } = await supabase
+          .from('appointments')
+          .update({ video_session_id: sessionId })
+          .eq('id', appointmentId);
+
+        if (updateError) throw updateError;
+      }
+
+      navigate(`/video-consultation?room=${sessionId}`);
+    } catch (error) {
+      console.error('Error setting up video call:', error);
+      toast.error('Failed to start video call');
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-2xl text-gray-600">Loading profile...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md mx-auto bg-white shadow-lg rounded-xl p-8">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">My Profile</h2>
-          <button 
-            onClick={() => setIsEditing(!isEditing)}
-            className="text-red-600 hover:text-red-700 flex items-center"
-          >
-            <Edit className="h-5 w-5 mr-1" />
-            {isEditing ? 'Cancel' : 'Edit'}
-          </button>
-        </div>
-
-        {isEditing ? (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Name</label>
-              <input 
-                type="text"
-                value={editedProfile.name || ''}
-                onChange={(e) => setEditedProfile({...editedProfile, name: e.target.value})}
-                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Email</label>
-              <input 
-                type="email"
-                value={editedProfile.email || ''}
-                disabled
-                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 bg-gray-100"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">Phone</label>
-              <input 
-                type="text"
-                value={editedProfile.phone || ''}
-                onChange={(e) => setEditedProfile({...editedProfile, phone: e.target.value})}
-                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700">City</label>
-              <input 
-                type="text"
-                value={editedProfile.city || ''}
-                onChange={(e) => setEditedProfile({...editedProfile, city: e.target.value})}
-                className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3"
-              />
-            </div>
+      <div className="max-w-4xl mx-auto space-y-8">
+        {/* Profile Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white rounded-xl shadow-lg p-8"
+        >
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-2xl font-bold text-gray-900">My Profile</h2>
             <button 
-              onClick={handleUpdate}
-              className="w-full bg-red-600 text-white py-2 rounded-md hover:bg-red-700"
+              onClick={() => setIsEditing(!isEditing)}
+              className="text-red-600 hover:text-red-700 flex items-center"
             >
-              Save Changes
+              <Edit className="h-5 w-5 mr-1" />
+              {isEditing ? 'Cancel' : 'Edit'}
             </button>
           </div>
-        ) : (
-          <div className="space-y-4">
-            <div className="flex items-center">
-              <User className="h-6 w-6 mr-3 text-gray-500" />
-              <span className="text-gray-900">{profile.name || 'Not set'}</span>
+
+          {isEditing ? (
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Name</label>
+                <input 
+                  type="text"
+                  value={editedProfile.name || ''}
+                  onChange={(e) => setEditedProfile({...editedProfile, name: e.target.value})}
+                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Email</label>
+                <input 
+                  type="email"
+                  value={editedProfile.email || ''}
+                  disabled
+                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 bg-gray-100"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Phone</label>
+                <input 
+                  type="text"
+                  value={editedProfile.phone || ''}
+                  onChange={(e) => setEditedProfile({...editedProfile, phone: e.target.value})}
+                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">City</label>
+                <input 
+                  type="text"
+                  value={editedProfile.city || ''}
+                  onChange={(e) => setEditedProfile({...editedProfile, city: e.target.value})}
+                  className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3"
+                />
+              </div>
+              <button 
+                onClick={handleUpdate}
+                className="w-full bg-red-600 text-white py-2 rounded-md hover:bg-red-700"
+              >
+                Save Changes
+              </button>
             </div>
-            <div className="flex items-center">
-              <Mail className="h-6 w-6 mr-3 text-gray-500" />
-              <span className="text-gray-900">{profile.email || 'Not set'}</span>
+          ) : (
+            <div className="space-y-4">
+              <div className="flex items-center">
+                <User className="h-6 w-6 mr-3 text-gray-500" />
+                <span className="text-gray-900">{profile.name || 'Not set'}</span>
+              </div>
+              <div className="flex items-center">
+                <Mail className="h-6 w-6 mr-3 text-gray-500" />
+                <span className="text-gray-900">{profile.email || 'Not set'}</span>
+              </div>
+              <div className="flex items-center">
+                <Phone className="h-6 w-6 mr-3 text-gray-500" />
+                <span className="text-gray-900">{profile.phone || 'Not set'}</span>
+              </div>
+              <div className="flex items-center">
+                <MapPin className="h-6 w-6 mr-3 text-gray-500" />
+                <span className="text-gray-900">{profile.city || 'Not set'}</span>
+              </div>
             </div>
-            <div className="flex items-center">
-              <Phone className="h-6 w-6 mr-3 text-gray-500" />
-              <span className="text-gray-900">{profile.phone || 'Not set'}</span>
+          )}
+        </motion.div>
+
+        {/* Appointments Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="bg-white rounded-xl shadow-lg p-8"
+        >
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">My Appointments</h2>
+          
+          {appointments.length === 0 ? (
+            <div className="text-center py-8">
+              <Calendar className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-500">No appointments scheduled</p>
             </div>
-            <div className="flex items-center">
-              <MapPin className="h-6 w-6 mr-3 text-gray-500" />
-              <span className="text-gray-900">{profile.city || 'Not set'}</span>
+          ) : (
+            <div className="space-y-4">
+              {appointments.map((appointment) => (
+                <div
+                  key={appointment.id}
+                  className="border border-gray-200 rounded-lg p-4"
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-semibold text-gray-900">
+                        Dr. {appointment.doctor.name}
+                      </h3>
+                      <p className="text-gray-600">{appointment.doctor.specialty}</p>
+                      <div className="flex items-center mt-2 text-sm text-gray-500">
+                        <Calendar className="h-4 w-4 mr-1" />
+                        {format(new Date(appointment.appointment_date), 'PPP')}
+                        <Clock className="h-4 w-4 ml-4 mr-1" />
+                        {format(new Date(appointment.appointment_date), 'p')}
+                      </div>
+                    </div>
+                    <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                      appointment.status === 'completed' ? 'bg-green-100 text-green-800' :
+                      appointment.status === 'cancelled' ? 'bg-red-100 text-red-800' :
+                      'bg-yellow-100 text-yellow-800'
+                    }`}>
+                      {appointment.status}
+                    </span>
+                  </div>
+                  
+                  {appointment.status === 'confirmed' && (
+                    <button
+                      onClick={() => joinVideoCall(appointment.id, appointment.video_session_id)}
+                      className="mt-4 flex items-center justify-center w-full py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-red-600 via-pink-500 to-orange-500 hover:opacity-90"
+                    >
+                      <Video className="h-4 w-4 mr-2" />
+                      {appointment.video_session_id ? 'Join Video Call' : 'Start Video Call'}
+                    </button>
+                  )}
+                </div>
+              ))}
             </div>
-          </div>
-        )}
+          )}
+        </motion.div>
       </div>
     </div>
   );
