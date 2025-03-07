@@ -7,6 +7,7 @@ import AgoraRTC, {
 } from 'agora-rtc-react';
 import { Video, Mic, MicOff, VideoOff, PhoneOff } from 'lucide-react';
 import { motion } from 'framer-motion';
+import React from 'react';
 
 // Create a client with the appropriate mode and codec
 const client = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' });
@@ -90,7 +91,7 @@ const VideoCall = ({ channelName, onLeave }: VideoCallProps) => {
             return updatedUsers;
           } else {
             // Add new user
-            // userWithRef.videoRef = React.createRef();
+            userWithRef.videoRef = React.createRef();
             return [...prevUsers, userWithRef];
           }
         });
