@@ -90,7 +90,7 @@ const VideoCall = ({ channelName, onLeave }: VideoCallProps) => {
             return updatedUsers;
           } else {
             // Add new user
-            userWithRef.videoRef = React.createRef();
+            // userWithRef.videoRef = React.createRef();
             return [...prevUsers, userWithRef];
           }
         });
