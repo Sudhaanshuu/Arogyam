@@ -77,7 +77,7 @@ const Hero: React.FC = () => {
           </div>
         </motion.div>
 
-        {/* Feature cards */}
+        /* {/* Feature cards */}
         <motion.div
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
@@ -130,7 +130,7 @@ const Hero: React.FC = () => {
               </div>
             </motion.div>
           ))}
-        </motion.div>
+        </motion.div> */
 
         {/* Stats */}
         <motion.div
