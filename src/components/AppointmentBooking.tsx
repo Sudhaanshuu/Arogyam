@@ -4,7 +4,7 @@ import { format, addDays, isToday, isTomorrow, isAfter, isBefore, addMinutes } f
 import { Calendar, Clock, Users, ArrowRight } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useUserStore, useAppointmentStore } from '../lib/store';
-import { getDoctors, createAppointment } from '../lib/supabase';
+import { getDoctors, getVerifiedDoctors, createAppointment } from '../lib/supabase';
 import toast from 'react-hot-toast';
 
 interface Doctor {
@@ -37,9 +37,13 @@ const AppointmentBooking: React.FC = () => {
   useEffect(() => {
     const fetchDoctors = async () => {
       try {
-        const { data, error } = await getDoctors();
+        console.log('Fetching doctors...');
+        // Use getVerifiedDoctors for appointment booking to get registered doctors
+        const { data, error } = await getVerifiedDoctors();
+        console.log('Doctors response:', { data, error });
         if (error) throw error;
         setDoctors(data || []);
+        console.log('Set doctors:', data?.length || 0);
       } catch (error) {
         console.error('Error fetching doctors:', error);
         toast.error('Failed to load doctors');
@@ -106,7 +110,7 @@ const AppointmentBooking: React.FC = () => {
       appointmentDate.setHours(hours, minutes);
 
       const appointmentData = {
-        user_id: user.id,
+        patient_id: user.id,
         doctor_id: selectedDoctor.id,
         appointment_date: appointmentDate.toISOString(),
         duration_minutes: duration,

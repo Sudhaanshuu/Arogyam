@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
+import { useUserStore } from './lib/store';
+import { supabase } from './lib/supabase';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import ServiceCards from './components/ServiceCards';
@@ -17,9 +19,32 @@ import Signup from './components/Signup';
 import Profile from './components/Profile';
 import VerifyEmail from './components/VerifyEmail';
 import DoctorRegistration from './components/DoctorRegistration';
-import VideoCallFeature from './components/VideoCallPage'; // Import the new component
+import VideoCallFeature from './components/VideoCallPage'; 
 
 function App() {
+  const { loadUser } = useUserStore();
+
+  useEffect(() => {
+    // Initialize user authentication state
+    loadUser();
+    
+    // Set up auth state change listener
+    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        await loadUser();
+      } else if (event === 'SIGNED_OUT') {
+        // Clear user state on sign out
+        useUserStore.getState().setUser(null);
+        useUserStore.getState().setProfile(null);
+      }
+    });
+    
+    // Clean up the subscription
+    return () => {
+      authListener.subscription.unsubscribe();
+    };
+  }, [loadUser]);
+
   return (
     <Router>
       <div className="min-h-screen bg-white">

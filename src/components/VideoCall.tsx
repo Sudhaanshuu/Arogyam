@@ -23,32 +23,55 @@ const VideoCall = ({ channelName, userName, onLeave }: VideoCallProps) => {
   const [users, setUsers] = useState<IAgoraRTCRemoteUser[]>([]);
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
+  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'failed'>('connecting');
 
   useEffect(() => {
     const init = async () => {
       try {
+        setConnectionStatus('connecting');
+        
+        // Check if Agora App ID is available
+        const agoraAppId = import.meta.env.VITE_AGORA_APP_ID;
+        if (!agoraAppId || agoraAppId === 'your-agora-app-id') {
+          throw new Error('Agora App ID not configured');
+        }
+
+        console.log('Joining channel:', channelName, 'with App ID:', agoraAppId);
+        
         await client.join(
-          import.meta.env.VITE_AGORA_APP_ID,
+          agoraAppId,
           channelName,
           null,
           null
         );
 
-        // Set user name as client metadata
-        client.setClientRole('host', { level: 1, name: userName });
+        console.log('Successfully joined channel');
 
+        // Create audio and video tracks
         const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
         const videoTrack = await AgoraRTC.createCameraVideoTrack();
 
         setLocalAudioTrack(audioTrack);
         setLocalVideoTrack(videoTrack);
+        
+        // Publish tracks
         await client.publish([audioTrack, videoTrack]);
+        console.log('Successfully published tracks');
+
+        setConnectionStatus('connected');
 
         client.on('user-published', async (user, mediaType) => {
+          console.log('User published:', user.uid, mediaType);
           await client.subscribe(user, mediaType);
           
           if (mediaType === 'video') {
-            setUsers(prevUsers => [...prevUsers, user]);
+            setUsers(prevUsers => {
+              const existingUser = prevUsers.find(u => u.uid === user.uid);
+              if (existingUser) {
+                return prevUsers.map(u => u.uid === user.uid ? user : u);
+              }
+              return [...prevUsers, user];
+            });
           }
           if (mediaType === 'audio') {
             user.audioTrack?.play();
@@ -56,47 +79,146 @@ const VideoCall = ({ channelName, userName, onLeave }: VideoCallProps) => {
         });
 
         client.on('user-unpublished', (user) => {
+          console.log('User unpublished:', user.uid);
+          setUsers(prevUsers => prevUsers.filter(u => u.uid !== user.uid));
+        });
+
+        client.on('user-left', (user) => {
+          console.log('User left:', user.uid);
           setUsers(prevUsers => prevUsers.filter(u => u.uid !== user.uid));
         });
 
         toast.success('Connected to video call');
       } catch (error) {
         console.error('Error initializing video call:', error);
-        toast.error('Failed to connect to video call');
-        onLeave();
+        setConnectionStatus('failed');
+        
+        let errorMessage = 'Failed to connect to video call';
+        if (error instanceof Error) {
+          if (error.message.includes('App ID')) {
+            errorMessage = 'Video call service not configured';
+          } else if (error.message.includes('permission')) {
+            errorMessage = 'Camera/microphone permission denied';
+          }
+        }
+        
+        toast.error(errorMessage);
+        // Don't automatically leave on error, let user decide
       }
     };
 
     init();
 
     return () => {
-      localAudioTrack?.close();
-      localVideoTrack?.close();
-      client.leave();
+      // Cleanup function
+      const cleanup = async () => {
+        try {
+          if (localAudioTrack) {
+            localAudioTrack.close();
+          }
+          if (localVideoTrack) {
+            localVideoTrack.close();
+          }
+          if (client.connectionState === 'CONNECTED') {
+            await client.leave();
+          }
+        } catch (error) {
+          console.error('Cleanup error:', error);
+        }
+      };
+      
+      cleanup();
     };
   }, [channelName, userName]);
 
   const toggleVideo = async () => {
     if (localVideoTrack) {
-      await localVideoTrack.setEnabled(!isVideoEnabled);
-      setIsVideoEnabled(!isVideoEnabled);
+      try {
+        await localVideoTrack.setEnabled(!isVideoEnabled);
+        setIsVideoEnabled(!isVideoEnabled);
+      } catch (error) {
+        console.error('Error toggling video:', error);
+        toast.error('Failed to toggle video');
+      }
     }
   };
 
   const toggleAudio = async () => {
     if (localAudioTrack) {
-      await localAudioTrack.setEnabled(!isAudioEnabled);
-      setIsAudioEnabled(!isAudioEnabled);
+      try {
+        await localAudioTrack.setEnabled(!isAudioEnabled);
+        setIsAudioEnabled(!isAudioEnabled);
+      } catch (error) {
+        console.error('Error toggling audio:', error);
+        toast.error('Failed to toggle audio');
+      }
     }
   };
 
-  const handleLeave = () => {
-    localAudioTrack?.close();
-    localVideoTrack?.close();
-    client.leave();
-    onLeave();
-    toast.success('Left video call');
+  const handleLeave = async () => {
+    try {
+      if (localAudioTrack) {
+        localAudioTrack.close();
+      }
+      if (localVideoTrack) {
+        localVideoTrack.close();
+      }
+      if (client.connectionState === 'CONNECTED') {
+        await client.leave();
+      }
+      onLeave();
+      toast.success('Left video call');
+    } catch (error) {
+      console.error('Error leaving call:', error);
+      onLeave(); // Still leave even if there's an error
+    }
   };
+
+  // Show connection status
+  if (connectionStatus === 'connecting') {
+    return (
+      <div className="relative h-full bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-red-500 border-r-transparent mb-4"></div>
+          <p className="text-white text-lg">Connecting to video call...</p>
+          <button 
+            onClick={onLeave}
+            className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (connectionStatus === 'failed') {
+    return (
+      <div className="relative h-full bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-red-500 mb-4">
+            <Video className="h-16 w-16 mx-auto mb-2" />
+          </div>
+          <p className="text-white text-lg mb-2">Failed to connect to video call</p>
+          <p className="text-gray-400 text-sm mb-4">Please check your internet connection and try again</p>
+          <div className="space-x-4">
+            <button 
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+            >
+              Retry
+            </button>
+            <button 
+              onClick={onLeave}
+              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+            >
+              Back
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative h-full bg-gradient-to-br from-gray-900 via-gray-800 to-black">

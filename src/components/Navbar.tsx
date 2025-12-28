@@ -9,39 +9,19 @@ const Navbar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [loading, setLoading] = useState(true);
-  const { user, logout, setUser } = useUserStore(); // Make sure setUser is exported from your store
+  const { user, logout, setUser, loadUser } = useUserStore();
   const location = useLocation();
 
   // Check for session on component mount and page refresh
   useEffect(() => {
     const checkSession = async () => {
       setLoading(true);
-      // Get current session
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (session?.user) {
-        // If there's an active session, update the user state
-        setUser(session.user);
-      }
+      await loadUser();
       setLoading(false);
     };
     
     checkSession();
-    
-    // Set up auth state change listener
-    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN' && session) {
-        setUser(session.user);
-      } else if (event === 'SIGNED_OUT') {
-        setUser(null);
-      }
-    });
-    
-    // Clean up the subscription
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
-  }, [setUser]);
+  }, [loadUser]);
 
   useEffect(() => {
     const handleScroll = () => {

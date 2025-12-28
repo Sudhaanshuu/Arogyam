@@ -127,15 +127,25 @@ const Chatbot: React.FC = () => {
 
   const getBotResponse = async (userInput: string): Promise<string> => {
     try {
+      // Format the input for better medical responses
+      const medicalPrompt = `As a helpful medical assistant, please provide accurate information about: ${userInput}`;
+      
       const response = await fetch(
-        'https://api-inference.huggingface.co/models/google/flan-t5-large',
+        'https://router.huggingface.co/models/google/flan-t5-large',
         {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${import.meta.env.VITE_HUGGINGFACE_API_KEY}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ inputs: userInput }),
+          body: JSON.stringify({ 
+            inputs: medicalPrompt,
+            parameters: {
+              max_length: 150,
+              temperature: 0.7,
+              do_sample: true
+            }
+          }),
         }
       );
 
@@ -148,11 +158,42 @@ const Chatbot: React.FC = () => {
       
       if (Array.isArray(data) && data[0]?.generated_text) {
         return data[0].generated_text;
+      } else if (data.generated_text) {
+        return data.generated_text;
       }
-      throw new Error('Unexpected response format from API');
+      
+      // Fallback responses for common medical queries
+      return getFallbackResponse(userInput);
     } catch (error) {
-      throw new Error('Failed to process your request. Please try again.');
+      console.error('API Error:', error);
+      return getFallbackResponse(userInput);
     }
+  };
+
+  const getFallbackResponse = (userInput: string): string => {
+    const input = userInput.toLowerCase();
+    
+    if (input.includes('appointment') || input.includes('book')) {
+      return "I can help you book an appointment! Please use the appointment booking feature on our website to schedule a consultation with one of our qualified doctors.";
+    }
+    
+    if (input.includes('medicine') || input.includes('drug')) {
+      return "For medicine information, please consult with our doctors or use our medicine search feature. Always consult a healthcare professional before taking any medication.";
+    }
+    
+    if (input.includes('symptom') || input.includes('pain') || input.includes('fever')) {
+      return "I understand you're experiencing symptoms. For proper diagnosis and treatment, please book a consultation with one of our doctors through the appointment system.";
+    }
+    
+    if (input.includes('emergency') || input.includes('urgent')) {
+      return "For medical emergencies, please contact your local emergency services immediately. Our telemedicine service is for non-emergency consultations.";
+    }
+    
+    if (input.includes('ayurveda') || input.includes('herbal')) {
+      return "Ayurveda offers natural healing approaches. Our platform features qualified Ayurvedic practitioners who can guide you with traditional treatments and herbal medicines.";
+    }
+    
+    return "I'm here to help with your healthcare questions! You can book appointments, search for medicines, or consult with our qualified doctors. For specific medical advice, please schedule a consultation.";
   };
 
   return (

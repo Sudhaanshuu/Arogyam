@@ -33,16 +33,34 @@ const Signup: React.FC = () => {
 
     setLoading(true);
     try {
-      const { error } = await signUp(data.email, data.password);
+      console.log('Attempting signup with:', { email: data.email, name: data.name });
+      const { data: signupData, error } = await signUp(data.email, data.password, data.name);
+      
+      console.log('Signup response:', { signupData, error });
       
       if (error) throw error;
+      
+      // If signup successful but user needs to confirm email
+      if (signupData.user && !signupData.session) {
+        toast.success('Please check your email to confirm your account!');
+        navigate('/login');
+        return;
+      }
       
       await loadUser();
       toast.success('Account created successfully!');
       navigate('/');
     } catch (error) {
       console.error('Error signing up:', error);
-      toast.error('Sign up failed. Please try again.');
+      
+      // Handle specific error cases
+      if (error.message?.includes('email confirmation')) {
+        toast.success('Please check your email to confirm your account!');
+      } else if (error.message?.includes('already registered')) {
+        toast.error('This email is already registered. Please try logging in.');
+      } else {
+        toast.error(`Sign up failed: ${error.message || 'Please try again.'}`);
+      }
     } finally {
       setLoading(false);
     }

@@ -33,7 +33,7 @@ export const useUserStore = create<UserState>((set) => ({
         
         // Load user profile
         const { data: profileData } = await supabase
-          .from('profiles')
+          .from('users')
           .select('*')
           .eq('id', data.session.user.id)
           .single();
@@ -45,6 +45,7 @@ export const useUserStore = create<UserState>((set) => ({
         set({ user: null, profile: null });
       }
     } catch (error) {
+      console.error('Error loading user:', error);
       set({ error: (error as Error).message });
     } finally {
       set({ loading: false });
