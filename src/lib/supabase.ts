@@ -99,7 +99,7 @@ export const getVerifiedDoctors = async () => {
     specialty: profile.specialty,
     experience: profile.experience_years || 0,
     rating: profile.rating || 4.5,
-    image_url: null,
+    image_url: undefined,
     city: profile.clinic_name || 'Available Online',
     available: profile.is_available
   }));
