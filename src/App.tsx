@@ -25,22 +25,39 @@ function App() {
   const { loadUser } = useUserStore();
 
   useEffect(() => {
+    let mounted = true;
+    
     // Initialize user authentication state
-    loadUser();
+    const initAuth = async () => {
+      if (mounted) {
+        await loadUser();
+      }
+    };
+    
+    initAuth();
     
     // Set up auth state change listener
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!mounted) return;
+      
+      console.log('Auth state changed:', event, session?.user?.id);
+      
       if (event === 'SIGNED_IN' && session) {
         await loadUser();
       } else if (event === 'SIGNED_OUT') {
         // Clear user state on sign out
         useUserStore.getState().setUser(null);
         useUserStore.getState().setProfile(null);
+        useUserStore.getState().setLoading(false);
+      } else if (event === 'TOKEN_REFRESHED' && session) {
+        // Update user on token refresh
+        useUserStore.getState().setUser(session.user);
       }
     });
     
     // Clean up the subscription
     return () => {
+      mounted = false;
       authListener.subscription.unsubscribe();
     };
   }, [loadUser]);
@@ -71,7 +88,8 @@ function App() {
           <Route path="/medicines" element={<MedicineSearch />} />
           <Route path="/doctors" element={<BestDoctors />} />
           <Route path="/messages" element={<Messaging />} />
-          <Route path="/video-consultation" element={<VideoCallFeature />} /> {/* Add this new route */}
+          <Route path="/video-consultation" element={<VideoCallFeature />} />
+          <Route path="/reset-password" element={<Login />} /> {/* Add reset password route */}
         </Routes>
         
         <Footer />

@@ -28,14 +28,27 @@ const Login: React.FC = () => {
     try {
       const { error } = await signIn(data.email, data.password);
       
-      if (error) throw error;
+      if (error) {
+        // Handle specific error types
+        if (error.message.includes('Invalid login credentials')) {
+          throw new Error('Invalid email or password. Please check your credentials.');
+        } else if (error.message.includes('Email not confirmed')) {
+          throw new Error('Please check your email and click the confirmation link.');
+        } else if (error.message.includes('Too many requests')) {
+          throw new Error('Too many login attempts. Please wait a moment and try again.');
+        } else {
+          throw error;
+        }
+      }
       
+      // Force reload user data to avoid cache issues
       await loadUser();
       toast.success('Login successful!');
       navigate('/');
     } catch (error) {
       console.error('Error signing in:', error);
-      toast.error('Login failed. Please check your credentials and try again.');
+      const errorMessage = error instanceof Error ? error.message : 'Login failed. Please try again.';
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }

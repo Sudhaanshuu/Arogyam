@@ -11,6 +11,20 @@ import toast from 'react-hot-toast';
 
 const client = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' });
 
+// Helper function to extract username from uid
+const extractUserNameFromUid = (uid: string): string => {
+  try {
+    // If uid follows our format: timestamp_username
+    const parts = uid.split('_');
+    if (parts.length >= 2) {
+      return parts.slice(1).join('_'); // Join back in case username had underscores
+    }
+    return `User ${uid}`;
+  } catch {
+    return `User ${uid}`;
+  }
+};
+
 interface VideoCallProps {
   channelName: string;
   userName: string;
@@ -21,6 +35,7 @@ const VideoCall = ({ channelName, userName, onLeave }: VideoCallProps) => {
   const [localVideoTrack, setLocalVideoTrack] = useState<ICameraVideoTrack | null>(null);
   const [localAudioTrack, setLocalAudioTrack] = useState<IMicrophoneAudioTrack | null>(null);
   const [users, setUsers] = useState<IAgoraRTCRemoteUser[]>([]);
+  const [userNames, setUserNames] = useState<Record<string, string>>({});
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
   const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'failed'>('connecting');
@@ -38,14 +53,17 @@ const VideoCall = ({ channelName, userName, onLeave }: VideoCallProps) => {
 
         console.log('Joining channel:', channelName, 'with App ID:', agoraAppId);
         
+        // Generate a unique user ID that includes the user name
+        const userId = `${Date.now()}_${userName.replace(/[^a-zA-Z0-9]/g, '')}`;
+        
         await client.join(
           agoraAppId,
           channelName,
           null,
-          null
+          userId
         );
 
-        console.log('Successfully joined channel');
+        console.log('Successfully joined channel with userId:', userId);
 
         // Create audio and video tracks
         const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
@@ -64,6 +82,13 @@ const VideoCall = ({ channelName, userName, onLeave }: VideoCallProps) => {
           console.log('User published:', user.uid, mediaType);
           await client.subscribe(user, mediaType);
           
+          // Extract username from uid if it follows our format
+          const extractedName = extractUserNameFromUid(user.uid.toString());
+          setUserNames(prev => ({
+            ...prev,
+            [user.uid.toString()]: extractedName
+          }));
+          
           if (mediaType === 'video') {
             setUsers(prevUsers => {
               const existingUser = prevUsers.find(u => u.uid === user.uid);
@@ -81,11 +106,18 @@ const VideoCall = ({ channelName, userName, onLeave }: VideoCallProps) => {
         client.on('user-unpublished', (user) => {
           console.log('User unpublished:', user.uid);
           setUsers(prevUsers => prevUsers.filter(u => u.uid !== user.uid));
+          // Keep the username in case user republishes
         });
 
         client.on('user-left', (user) => {
           console.log('User left:', user.uid);
           setUsers(prevUsers => prevUsers.filter(u => u.uid !== user.uid));
+          // Remove username when user leaves
+          setUserNames(prev => {
+            const newNames = { ...prev };
+            delete newNames[user.uid.toString()];
+            return newNames;
+          });
         });
 
         toast.success('Connected to video call');
@@ -265,7 +297,7 @@ const VideoCall = ({ channelName, userName, onLeave }: VideoCallProps) => {
               )}
               <div className="absolute bottom-4 left-4 text-white font-semibold bg-black/50 px-3 py-1 rounded-lg flex items-center">
                 <UserCircle className="h-4 w-4 mr-2" />
-                Remote User
+                {userNames[user.uid.toString()] || `User ${user.uid}`}
                 {!user.videoTrack && " - Camera Off"}
               </div>
             </motion.div>

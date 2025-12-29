@@ -47,43 +47,103 @@ const Profile: React.FC = () => {
         return;
       }
 
-      const { data, error } = await supabase
-        .from('profiles')
+      // First try to get from users table (matches the store)
+      let { data: userData, error: userError } = await supabase
+        .from('users')
         .select('*')
         .eq('id', user.id)
         .single();
 
-      if (error && error.code === 'PGRST116') {
-        // Profile doesn't exist, create it
-        const newProfile = {
-          id: user.id,
-          email: user.email,
-          name: user.user_metadata?.name || '',
-          phone: '',
-          city: ''
-        };
-
-        const { error: insertError } = await supabase
+      if (userError && userError.code === 'PGRST116') {
+        // User profile doesn't exist in users table, try profiles table
+        const { data: profileData, error: profileError } = await supabase
           .from('profiles')
-          .insert([newProfile]);
+          .select('*')
+          .eq('id', user.id)
+          .single();
 
-        if (insertError) throw insertError;
+        if (profileError && profileError.code === 'PGRST116') {
+          // Neither table has the profile, create it in users table
+          const newProfile = {
+            id: user.id,
+            email: user.email,
+            full_name: user.user_metadata?.full_name || user.user_metadata?.name || '',
+            phone: '',
+            city: ''
+          };
 
-        setProfile(newProfile);
-        setEditedProfile(newProfile);
-      } else if (error) {
-        throw error;
+          const { error: insertError } = await supabase
+            .from('users')
+            .insert([newProfile]);
+
+          if (insertError) {
+            console.error('Error creating profile in users table:', insertError);
+            // Try creating in profiles table as fallback
+            const profileFallback = {
+              id: user.id,
+              email: user.email,
+              name: user.user_metadata?.full_name || user.user_metadata?.name || '',
+              phone: '',
+              city: ''
+            };
+
+            const { error: profileInsertError } = await supabase
+              .from('profiles')
+              .insert([profileFallback]);
+
+            if (profileInsertError) throw profileInsertError;
+
+            const displayProfile = {
+              id: user.id,
+              name: profileFallback.name,
+              email: user.email,
+              phone: '',
+              city: ''
+            };
+            setProfile(displayProfile);
+            setEditedProfile(displayProfile);
+          } else {
+            const displayProfile = {
+              id: user.id,
+              name: newProfile.full_name,
+              email: user.email,
+              phone: newProfile.phone,
+              city: newProfile.city
+            };
+            setProfile(displayProfile);
+            setEditedProfile(displayProfile);
+          }
+        } else if (profileError) {
+          throw profileError;
+        } else {
+          // Found in profiles table
+          const displayProfile = {
+            id: profileData.id,
+            name: profileData.name,
+            email: user.email,
+            phone: profileData.phone,
+            city: profileData.city
+          };
+          setProfile(displayProfile);
+          setEditedProfile(displayProfile);
+        }
+      } else if (userError) {
+        throw userError;
       } else {
-        const profileData = {
-          ...data,
-          email: user.email
+        // Found in users table
+        const displayProfile = {
+          id: userData.id,
+          name: userData.full_name || userData.name,
+          email: user.email,
+          phone: userData.phone,
+          city: userData.city
         };
-        setProfile(profileData);
-        setEditedProfile(profileData);
+        setProfile(displayProfile);
+        setEditedProfile(displayProfile);
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
-      toast.error('Failed to load profile');
+      toast.error('Failed to load profile. Please try refreshing the page.');
     } finally {
       setLoading(false);
     }
@@ -111,7 +171,16 @@ const Profile: React.FC = () => {
         .order('appointment_date', { ascending: false });
 
       if (error) throw error;
-      setAppointments(data || []);
+      
+      // Transform the data to handle the doctor relationship properly
+      const transformedAppointments = data?.map(appointment => ({
+        ...appointment,
+        doctor: Array.isArray(appointment.doctor) 
+          ? appointment.doctor[0] 
+          : appointment.doctor || { name: 'Unknown Doctor', specialty: 'General' }
+      })) || [];
+      
+      setAppointments(transformedAppointments);
     } catch (error) {
       console.error('Error fetching appointments:', error);
       toast.error('Failed to load appointments');
@@ -120,23 +189,36 @@ const Profile: React.FC = () => {
 
   const handleUpdate = async () => {
     try {
-      const { error } = await supabase
-        .from('profiles')
+      // Try updating users table first
+      let { error: userUpdateError } = await supabase
+        .from('users')
         .update({
-          name: editedProfile.name,
+          full_name: editedProfile.name,
           phone: editedProfile.phone,
           city: editedProfile.city
         })
         .eq('id', profile.id);
 
-      if (error) throw error;
+      if (userUpdateError) {
+        // Fallback to profiles table
+        const { error: profileUpdateError } = await supabase
+          .from('profiles')
+          .update({
+            name: editedProfile.name,
+            phone: editedProfile.phone,
+            city: editedProfile.city
+          })
+          .eq('id', profile.id);
+
+        if (profileUpdateError) throw profileUpdateError;
+      }
 
       setProfile(editedProfile);
       setIsEditing(false);
       toast.success('Profile updated successfully');
     } catch (error) {
       console.error('Error updating profile:', error);
-      toast.error('Failed to update profile');
+      toast.error('Failed to update profile. Please try again.');
     }
   };
 
