@@ -28,6 +28,7 @@ const Chatbot: React.FC = () => {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [ttsEnabled, setTtsEnabled] = useState(true);
   const [sttSupported, setSttSupported] = useState(true);
+  const [conversationContext, setConversationContext] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const recognition = useRef<any>(null);
   const synthesis = useRef<SpeechSynthesis | null>(null);
@@ -106,7 +107,12 @@ const Chatbot: React.FC = () => {
     const trimmedInput = input.trim();
     if (!trimmedInput) return;
 
+    // Add user message
     setMessages(prev => [...prev, { text: trimmedInput, isBot: false }]);
+    
+    // Update conversation context
+    setConversationContext(prev => [...prev.slice(-4), trimmedInput]); // Keep last 5 messages for context
+    
     setInput('');
     setIsTyping(true);
 
@@ -126,12 +132,18 @@ const Chatbot: React.FC = () => {
   };
 
   const getBotResponse = async (userInput: string): Promise<string> => {
+    // First try to get a contextual response based on conversation
+    const contextualResponse = getContextualResponse(userInput);
+    if (contextualResponse) {
+      return contextualResponse;
+    }
+
     try {
-      // Format the input for better medical responses
-      const medicalPrompt = `As a helpful medical assistant, please provide accurate information about: ${userInput}`;
+      // Try the Hugging Face API as a secondary option
+      const medicalPrompt = `User: ${userInput}\nAssistant: As a helpful medical assistant for Arogyam healthcare platform,`;
       
       const response = await fetch(
-        'https://router.huggingface.co/models/google/flan-t5-large',
+        'https://api-inference.huggingface.co/models/microsoft/DialoGPT-medium',
         {
           method: 'POST',
           headers: {
@@ -141,59 +153,148 @@ const Chatbot: React.FC = () => {
           body: JSON.stringify({ 
             inputs: medicalPrompt,
             parameters: {
-              max_length: 150,
-              temperature: 0.7,
-              do_sample: true
+              max_length: 100,
+              temperature: 0.8,
+              do_sample: true,
+              top_p: 0.9,
+              pad_token_id: 50256
             }
           }),
         }
       );
 
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to get response');
+      if (response.ok) {
+        const data = await response.json();
+        console.log('API Response:', data);
+        
+        if (Array.isArray(data) && data.length > 0 && data[0]?.generated_text) {
+          const generatedText = data[0].generated_text.replace(medicalPrompt, '').trim();
+          if (generatedText && generatedText.length > 10) {
+            return generatedText;
+          }
+        }
       }
-
-      const data = await response.json();
-      
-      if (Array.isArray(data) && data[0]?.generated_text) {
-        return data[0].generated_text;
-      } else if (data.generated_text) {
-        return data.generated_text;
-      }
-      
-      // Fallback responses for common medical queries
-      return getFallbackResponse(userInput);
     } catch (error) {
       console.error('API Error:', error);
-      return getFallbackResponse(userInput);
     }
+    
+    // Always fall back to our curated responses
+    return getFallbackResponse(userInput);
+  };
+
+  const getContextualResponse = (userInput: string): string | null => {
+    const input = userInput.toLowerCase();
+    
+    // Check if this is a follow-up question based on conversation context
+    const lastContext = conversationContext[conversationContext.length - 1]?.toLowerCase() || '';
+    
+    // Follow-up responses
+    if (input.includes('how') && lastContext.includes('appointment')) {
+      return "To book an appointment: 1) Click on 'Book Appointment' in our navigation, 2) Select your preferred doctor and specialty, 3) Choose an available time slot, 4) Fill in your details. It's that simple!";
+    }
+    
+    if (input.includes('cost') || input.includes('price') || input.includes('fee')) {
+      return "Our consultation fees vary by doctor and specialty. You can see the exact fees when booking an appointment. We also accept various payment methods for your convenience.";
+    }
+    
+    if (input.includes('video call') || input.includes('online consultation')) {
+      return "Yes! We offer video consultations with our doctors. After booking an appointment, you'll receive a link to join the video call at your scheduled time.";
+    }
+    
+    if (input.includes('prescription') || input.includes('medicine delivery')) {
+      return "After your consultation, doctors can provide digital prescriptions. You can use our medicine search feature to find and order medications from verified pharmacies.";
+    }
+    
+    return null; // No contextual response found
   };
 
   const getFallbackResponse = (userInput: string): string => {
     const input = userInput.toLowerCase();
     
-    if (input.includes('appointment') || input.includes('book')) {
-      return "I can help you book an appointment! Please use the appointment booking feature on our website to schedule a consultation with one of our qualified doctors.";
+    // Greeting responses
+    if (input.includes('hello') || input.includes('hi') || input.includes('hey')) {
+      const greetings = [
+        "Hello! I'm here to help you with your healthcare needs. What can I assist you with today?",
+        "Hi there! Welcome to Arogyam. How can I help you with your health concerns?",
+        "Hey! I'm your Arogyam assistant. Feel free to ask me about appointments, medicines, or health queries."
+      ];
+      return greetings[Math.floor(Math.random() * greetings.length)];
     }
     
-    if (input.includes('medicine') || input.includes('drug')) {
-      return "For medicine information, please consult with our doctors or use our medicine search feature. Always consult a healthcare professional before taking any medication.";
+    // Appointment related
+    if (input.includes('appointment') || input.includes('book') || input.includes('schedule')) {
+      const appointmentResponses = [
+        "I can help you book an appointment! Please use our appointment booking feature to schedule a consultation with one of our qualified doctors.",
+        "Ready to see a doctor? Use our easy appointment booking system to find available slots with our healthcare professionals.",
+        "Let's get you scheduled! Our appointment booking feature will help you find the perfect time to consult with our doctors."
+      ];
+      return appointmentResponses[Math.floor(Math.random() * appointmentResponses.length)];
     }
     
-    if (input.includes('symptom') || input.includes('pain') || input.includes('fever')) {
-      return "I understand you're experiencing symptoms. For proper diagnosis and treatment, please book a consultation with one of our doctors through the appointment system.";
+    // Medicine related
+    if (input.includes('medicine') || input.includes('drug') || input.includes('medication')) {
+      const medicineResponses = [
+        "For medicine information, please use our medicine search feature or consult with our doctors. Always consult a healthcare professional before taking any medication.",
+        "I recommend using our medicine search tool for detailed drug information. For personalized advice, book a consultation with our doctors.",
+        "Our medicine database can help you find information about medications. However, please consult with our qualified doctors for proper medical advice."
+      ];
+      return medicineResponses[Math.floor(Math.random() * medicineResponses.length)];
     }
     
-    if (input.includes('emergency') || input.includes('urgent')) {
-      return "For medical emergencies, please contact your local emergency services immediately. Our telemedicine service is for non-emergency consultations.";
+    // Symptoms related
+    if (input.includes('symptom') || input.includes('pain') || input.includes('fever') || input.includes('headache') || input.includes('cough')) {
+      const symptomResponses = [
+        "I understand you're experiencing symptoms. For proper diagnosis and treatment, please book a consultation with one of our doctors.",
+        "Symptoms can be concerning. Our qualified doctors can provide proper evaluation - please schedule an appointment for personalized care.",
+        "For any health symptoms, it's best to consult with a medical professional. Use our appointment system to connect with our doctors."
+      ];
+      return symptomResponses[Math.floor(Math.random() * symptomResponses.length)];
     }
     
-    if (input.includes('ayurveda') || input.includes('herbal')) {
-      return "Ayurveda offers natural healing approaches. Our platform features qualified Ayurvedic practitioners who can guide you with traditional treatments and herbal medicines.";
+    // Emergency
+    if (input.includes('emergency') || input.includes('urgent') || input.includes('serious')) {
+      return "⚠️ For medical emergencies, please contact your local emergency services immediately (call 108 in India). Our telemedicine service is for non-emergency consultations.";
     }
     
-    return "I'm here to help with your healthcare questions! You can book appointments, search for medicines, or consult with our qualified doctors. For specific medical advice, please schedule a consultation.";
+    // Ayurveda related
+    if (input.includes('ayurveda') || input.includes('herbal') || input.includes('natural')) {
+      const ayurvedaResponses = [
+        "Ayurveda offers wonderful natural healing approaches! Our platform features qualified Ayurvedic practitioners who can guide you with traditional treatments.",
+        "Interested in natural healing? Our Ayurvedic doctors can help you with herbal medicines and traditional treatment approaches.",
+        "Ayurveda combines ancient wisdom with modern healthcare. Book a consultation with our Ayurvedic specialists for personalized natural treatments."
+      ];
+      return ayurvedaResponses[Math.floor(Math.random() * ayurvedaResponses.length)];
+    }
+    
+    // Doctor related
+    if (input.includes('doctor') || input.includes('specialist')) {
+      const doctorResponses = [
+        "Our platform has qualified doctors across various specialties. You can book appointments, have video consultations, or chat with them directly.",
+        "Looking for a doctor? We have experienced healthcare professionals ready to help. Use our appointment system to connect with the right specialist.",
+        "Our team includes doctors from various medical fields. Browse our doctor profiles and book a consultation that suits your needs."
+      ];
+      return doctorResponses[Math.floor(Math.random() * doctorResponses.length)];
+    }
+    
+    // General health questions
+    if (input.includes('health') || input.includes('wellness') || input.includes('fitness')) {
+      const healthResponses = [
+        "Health and wellness are important! Our doctors can provide personalized advice for your health goals. Would you like to book a consultation?",
+        "Great question about health! For personalized wellness advice, I recommend consulting with our healthcare professionals.",
+        "Your health matters! Our platform offers comprehensive healthcare services including consultations, medicine search, and health monitoring."
+      ];
+      return healthResponses[Math.floor(Math.random() * healthResponses.length)];
+    }
+    
+    // Default responses
+    const defaultResponses = [
+      "I'm here to help with your healthcare questions! You can book appointments, search for medicines, or consult with our qualified doctors.",
+      "Welcome to Arogyam! I can assist you with appointment booking, medicine information, or connecting you with our healthcare professionals.",
+      "How can I help you today? I can guide you through our services like doctor consultations, appointment booking, and medicine search.",
+      "I'm your healthcare assistant! Feel free to ask about our services, book appointments, or get information about medicines and treatments."
+    ];
+    
+    return defaultResponses[Math.floor(Math.random() * defaultResponses.length)];
   };
 
   return (
