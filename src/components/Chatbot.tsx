@@ -301,7 +301,7 @@ const Chatbot: React.FC = () => {
     <>
       <motion.button
         onClick={() => setIsOpen(!isOpen)}
-        className="fixed bottom-6 right-6 z-50 bg-gradient-to-r from-red-600 via-pink-500 to-orange-500 text-white p-4 rounded-full shadow-lg hover:opacity-90 transition-opacity"
+        className="fixed bottom-6 right-6 z-[60] bg-gradient-to-r from-red-600 via-pink-500 to-orange-500 text-white p-4 rounded-full shadow-lg hover:opacity-90 transition-opacity"
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.9 }}
       >
@@ -315,7 +315,7 @@ const Chatbot: React.FC = () => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.9 }}
             transition={{ duration: 0.3 }}
-            className="fixed bottom-20 right-6 z-50 w-80 sm:w-96 bg-white rounded-lg shadow-xl overflow-hidden"
+            className="fixed bottom-20 right-6 z-[60] w-80 sm:w-96 bg-white rounded-lg shadow-xl overflow-hidden max-h-[calc(100vh-8rem)]"
           >
             <div className="bg-gradient-to-r from-red-600 via-pink-500 to-orange-500 text-white p-4">
               <div className="flex items-center">
@@ -344,7 +344,7 @@ const Chatbot: React.FC = () => {
               </div>
             </div>
 
-            <div className="h-80 overflow-y-auto p-4 bg-gray-50">
+            <div className="h-80 overflow-y-auto p-4 bg-gray-50 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
               {messages.map((message, index) => (
                 <div
                   key={index}
@@ -377,40 +377,42 @@ const Chatbot: React.FC = () => {
               <div ref={messagesEndRef} />
             </div>
 
-            <form onSubmit={handleSubmit} className="p-3 border-t border-gray-200 flex gap-2">
-              <div className="flex-1 relative">
-                <input
-                  type="text"
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  placeholder="Type or speak your message..."
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                  disabled={isTyping}
-                />
-                {!sttSupported && (
-                  <span className="absolute right-2 top-2 text-red-500" title="Speech to text not supported">
-                    <Ear className="h-5 w-5" />
-                  </span>
-                )}
-              </div>
+            <form onSubmit={handleSubmit} className="p-3 border-t border-gray-200 bg-white">
               <div className="flex gap-2">
-                {sttSupported && (
-                  <button
-                    type="button"
-                    onClick={toggleSpeechRecognition}
-                    className={`p-2 rounded-lg ${isListening ? 'bg-red-500 text-white' : 'bg-gray-200'}`}
+                <div className="flex-1 relative">
+                  <input
+                    type="text"
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    placeholder="Type or speak your message..."
+                    className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
                     disabled={isTyping}
+                  />
+                  {!sttSupported && (
+                    <span className="absolute right-2 top-2 text-red-500" title="Speech to text not supported">
+                      <Ear className="h-5 w-5" />
+                    </span>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  {sttSupported && (
+                    <button
+                      type="button"
+                      onClick={toggleSpeechRecognition}
+                      className={`p-2 rounded-lg ${isListening ? 'bg-red-500 text-white' : 'bg-gray-200'}`}
+                      disabled={isTyping}
+                    >
+                      <Mic className="h-5 w-5" />
+                    </button>
+                  )}
+                  <button
+                    type="submit"
+                    className="bg-gradient-to-r from-red-600 via-pink-500 to-orange-500 text-white px-4 py-2 rounded-lg disabled:opacity-50"
+                    disabled={!input.trim() || isTyping}
                   >
-                    <Mic className="h-5 w-5" />
+                    <Send className="h-5 w-5" />
                   </button>
-                )}
-                <button
-                  type="submit"
-                  className="bg-gradient-to-r from-red-600 via-pink-500 to-orange-500 text-white px-4 py-2 rounded-lg disabled:opacity-50"
-                  disabled={!input.trim() || isTyping}
-                >
-                  <Send className="h-5 w-5" />
-                </button>
+                </div>
               </div>
             </form>
           </motion.div>

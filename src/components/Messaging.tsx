@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Users, Send, Clock } from 'lucide-react';
+import { Users, Send, Clock, X } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
 
@@ -294,17 +294,64 @@ const Messaging: React.FC = () => {
   };
 
   return (
-    <section className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8">
+    <section className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8 pb-20">
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.5 }}
-        className="max-w-6xl mx-auto bg-white rounded-xl shadow-lg"
+        className="max-w-6xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden messaging-container"
       >
-        <div className="grid grid-cols-3 h-[700px]">
-          {/* Doctors List */}
-          <div className="col-span-1 border-r border-gray-200 overflow-y-auto">
-            <div className="p-4 border-b border-gray-200">
+        <div className="flex flex-col lg:grid lg:grid-cols-3 h-[calc(100vh-8rem)] max-h-[700px]">
+          {/* Mobile: Show doctor selection when no doctor is selected */}
+          {!selectedDoctor && (
+            <div className="lg:hidden block">
+              <div className="p-4 border-b border-gray-200">
+                <h3 className="text-lg font-bold text-gray-900 mb-3">Select a Doctor</h3>
+                <div className="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto">
+                  {doctors.length === 0 ? (
+                    <div className="text-center py-8">
+                      <Users className="h-12 w-12 text-gray-400 mx-auto mb-2" />
+                      <p className="text-gray-500 text-sm">No doctors available</p>
+                      <button 
+                        onClick={fetchDoctors}
+                        className="mt-2 text-red-600 hover:text-red-700 text-sm font-medium"
+                      >
+                        Retry
+                      </button>
+                    </div>
+                  ) : (
+                    doctors.map(doctor => (
+                      <button
+                        key={doctor.id}
+                        onClick={() => handleSelectDoctor(doctor)}
+                        className="p-4 flex items-center text-left rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+                      >
+                        {doctor.image_url ? (
+                          <img 
+                            src={doctor.image_url} 
+                            alt={doctor.name} 
+                            className="h-12 w-12 rounded-full object-cover mr-4"
+                          />
+                        ) : (
+                          <div className="h-12 w-12 rounded-full bg-gradient-to-r from-red-600 via-pink-500 to-orange-500 flex items-center justify-center mr-4">
+                            <Users className="h-6 w-6 text-white" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium text-gray-900 truncate">{doctor.name}</h4>
+                          <p className="text-sm text-gray-500 truncate">{doctor.specialty}</p>
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Desktop Doctors List */}
+          <div className="lg:col-span-1 border-r border-gray-200 overflow-y-auto lg:block hidden">
+            <div className="p-4 border-b border-gray-200 sticky top-0 bg-white z-10">
               <h3 className="text-xl font-bold text-gray-900">Doctors</h3>
             </div>
             {doctors.length === 0 ? (
@@ -348,12 +395,12 @@ const Messaging: React.FC = () => {
           </div>
 
           {/* Messages Area */}
-          <div className="col-span-2 flex flex-col">
+          <div className={`lg:col-span-2 flex flex-col flex-1 ${!selectedDoctor ? 'lg:block hidden' : ''}`}>
             {selectedDoctor ? (
               <>
                 {/* Doctor Header */}
-                <div className="p-4 border-b border-gray-200 flex items-center">
-                  <div className="flex items-center">
+                <div className="p-4 border-b border-gray-200 flex items-center sticky top-0 bg-white z-10">
+                  <div className="flex items-center flex-1 min-w-0">
                     {selectedDoctor.image_url ? (
                       <img 
                         src={selectedDoctor.image_url} 
@@ -365,15 +412,22 @@ const Messaging: React.FC = () => {
                         <Users className="h-6 w-6 text-white" />
                       </div>
                     )}
-                    <div>
-                      <h4 className="font-medium text-gray-900">{selectedDoctor.name}</h4>
-                      <p className="text-sm text-gray-500">{selectedDoctor.specialty}</p>
+                    <div className="min-w-0">
+                      <h4 className="font-medium text-gray-900 truncate">{selectedDoctor.name}</h4>
+                      <p className="text-sm text-gray-500 truncate">{selectedDoctor.specialty}</p>
                     </div>
                   </div>
+                  {/* Back button for mobile */}
+                  <button
+                    onClick={() => setSelectedDoctor(null)}
+                    className="lg:hidden ml-4 p-2 text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
                 </div>
                 
                 {/* Messages List */}
-                <div className="flex-1 p-4 overflow-y-auto">
+                <div className="flex-1 p-4 overflow-y-auto min-h-0">
                   {messages.length === 0 ? (
                     <div className="flex flex-col items-center justify-center h-full text-center">
                       <div className="h-16 w-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
@@ -435,7 +489,7 @@ const Messaging: React.FC = () => {
                 </div>
                 
                 {/* Message Input */}
-                <div className="p-4 border-t border-gray-200">
+                <div className="p-4 border-t border-gray-200 bg-white">
                   {/* Quick Message Templates */}
                   {messages.length === 0 && (
                     <div className="mb-4">
@@ -459,26 +513,28 @@ const Messaging: React.FC = () => {
                     </div>
                   )}
                   
-                  <form onSubmit={handleSendMessage} className="flex">
-                    <input
-                      type="text"
-                      value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
-                      placeholder="Type your message..."
-                      className="flex-1 border border-gray-300 rounded-l-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                    />
-                    <button
-                      type="submit"
-                      disabled={!newMessage.trim()}
-                      className="bg-gradient-to-r from-red-600 via-pink-500 to-orange-500 text-white px-4 py-2 rounded-r-lg disabled:opacity-50 hover:opacity-90 transition-opacity"
-                    >
-                      <Send className="h-5 w-5" />
-                    </button>
+                  <form onSubmit={handleSendMessage}>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={newMessage}
+                        onChange={(e) => setNewMessage(e.target.value)}
+                        placeholder="Type your message..."
+                        className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                      />
+                      <button
+                        type="submit"
+                        disabled={!newMessage.trim()}
+                        className="bg-gradient-to-r from-red-600 via-pink-500 to-orange-500 text-white px-4 py-2 rounded-lg disabled:opacity-50 hover:opacity-90 transition-opacity flex-shrink-0"
+                      >
+                        <Send className="h-5 w-5" />
+                      </button>
+                    </div>
                   </form>
                 </div>
               </>
             ) : (
-              <div className="flex flex-col items-center justify-center h-full text-center p-4">
+              <div className="flex flex-col items-center justify-center h-full text-center p-4 lg:block hidden">
                 <div className="h-20 w-20 rounded-full bg-gray-100 flex items-center justify-center mb-4">
                   <Users className="h-10 w-10 text-gray-400" />
                 </div>
