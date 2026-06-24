@@ -15,13 +15,20 @@ const Navbar: React.FC = () => {
   // Check for session on component mount and page refresh
   useEffect(() => {
     const checkSession = async () => {
+      console.log('Navbar checking session...');
       setLoading(true);
       await loadUser();
       setLoading(false);
+      console.log('Navbar session check complete, user:', useUserStore.getState().user?.id || 'null');
     };
     
     checkSession();
   }, [loadUser]);
+
+  // Subscribe to user state changes
+  useEffect(() => {
+    console.log('Navbar: User state changed. User ID:', user?.id || 'null', 'Loading:', loading);
+  }, [user, loading]);
 
   useEffect(() => {
     const handleScroll = () => {

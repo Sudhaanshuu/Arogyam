@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { useUserStore } from './lib/store';
 import { supabase } from './lib/supabase';
+import './lib/authDebug'; // Import auth debug utilities
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import ServiceCards from './components/ServiceCards';
@@ -22,45 +23,43 @@ import DoctorRegistration from './components/DoctorRegistration';
 import VideoCallFeature from './components/VideoCallPage'; 
 
 function App() {
-  const { loadUser } = useUserStore();
+  const { loadUser, setUser, setProfile, setLoading } = useUserStore();
 
   useEffect(() => {
-    let mounted = true;
+    console.log('App initializing...');
     
-    // Initialize user authentication state
-    const initAuth = async () => {
-      if (mounted) {
-        await loadUser();
-      }
-    };
+    // Load initial session
+    loadUser();
     
-    initAuth();
-    
-    // Set up auth state change listener
-    const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (!mounted) return;
-      
+    // Set up auth state listener
+    const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
       console.log('Auth state changed:', event, session?.user?.id);
       
-      if (event === 'SIGNED_IN' && session) {
-        await loadUser();
+      if (event === 'SIGNED_IN') {
+        console.log('User signed in, reloading user data');
+        loadUser();
       } else if (event === 'SIGNED_OUT') {
-        // Clear user state on sign out
-        useUserStore.getState().setUser(null);
-        useUserStore.getState().setProfile(null);
-        useUserStore.getState().setLoading(false);
-      } else if (event === 'TOKEN_REFRESHED' && session) {
-        // Update user on token refresh
-        useUserStore.getState().setUser(session.user);
+        console.log('User signed out, clearing state');
+        setUser(null);
+        setProfile(null);
+        setLoading(false);
+      } else if (event === 'TOKEN_REFRESHED') {
+        console.log('Token refreshed, updating user');
+        if (session?.user) {
+          setUser(session.user);
+        }
+      } else if (event === 'USER_UPDATED') {
+        console.log('User updated, reloading');
+        loadUser();
       }
     });
     
-    // Clean up the subscription
+    // Cleanup
     return () => {
-      mounted = false;
+      console.log('App unmounting, cleaning up auth listener');
       authListener.subscription.unsubscribe();
     };
-  }, [loadUser]);
+  }, []);
 
   return (
     <Router>
@@ -89,7 +88,7 @@ function App() {
           <Route path="/doctors" element={<BestDoctors />} />
           <Route path="/messages" element={<Messaging />} />
           <Route path="/video-consultation" element={<VideoCallFeature />} />
-          <Route path="/reset-password" element={<Login />} /> {/* Add reset password route */}
+          <Route path="/reset-password" element={<Login />} />
         </Routes>
         
         <Footer />

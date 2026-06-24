@@ -1,0 +1,104 @@
+╔══════════════════════════════════════════════════════════════════════════╗
+║                    STEP 10: STORAGE BUCKETS SETUP                        ║
+║                          Quick Reference                                 ║
+╚══════════════════════════════════════════════════════════════════════════╝
+
+⚠️  IMPORTANT: CREATE BUCKETS IN DASHBOARD, NOT SQL EDITOR!
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📋 BUCKETS TO CREATE (6 Total)
+
+┌────────────────────────────────────────────────────────────────────────┐
+│ PUBLIC BUCKETS (Check "Public bucket" ✅)                              │
+├────────────────────────────────────────────────────────────────────────┤
+│ 1. doctor-profiles    → Doctor profile pictures                        │
+│ 2. user-profiles      → User/patient avatars                           │
+│ 3. medicine-images    → Medicine product images                        │
+│ 4. news-images        → News article images                            │
+└────────────────────────────────────────────────────────────────────────┘
+
+┌────────────────────────────────────────────────────────────────────────┐
+│ PRIVATE BUCKETS (Uncheck "Public bucket" ❌)                           │
+├────────────────────────────────────────────────────────────────────────┤
+│ 5. prescriptions      → Prescription documents (patient only)          │
+│ 6. medical-reports    → Medical reports (patient only)                 │
+└────────────────────────────────────────────────────────────────────────┘
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎯 STEP-BY-STEP INSTRUCTIONS
+
+1. Open Supabase Dashboard → https://app.supabase.com
+2. Select your Arogyam project
+3. Click "Storage" in left sidebar
+4. Click "New bucket" button (top right)
+5. For EACH bucket:
+   
+   ┌─────────────────────────────────────┐
+   │ Create a new bucket                 │
+   ├─────────────────────────────────────┤
+   │ Name: [bucket-name]                 │
+   │                                     │
+   │ ☑/☐ Public bucket                   │
+   │     (check for public, uncheck for  │
+   │      private)                       │
+   │                                     │
+   │ [Create bucket]                     │
+   └─────────────────────────────────────┘
+
+6. Repeat for all 6 buckets
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✅ VERIFICATION CHECKLIST
+
+After creating all buckets, check Storage page shows:
+
+□ doctor-profiles     (Public: Yes)
+□ user-profiles       (Public: Yes)
+□ medicine-images     (Public: Yes)
+□ news-images         (Public: Yes)
+□ prescriptions       (Public: No)
+□ medical-reports     (Public: No)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+❓ WHY THIS ERROR HAPPENED
+
+Error: "must be owner of table buckets"
+
+→ Storage buckets can ONLY be created through the Supabase Dashboard UI
+→ The SQL INSERT commands don't work due to permission restrictions
+→ This is by design for security reasons
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+⚡ QUICK CREATE GUIDE
+
+1. Dashboard → Storage → New bucket
+2. doctor-profiles    [✅ Public]  → Create
+3. user-profiles      [✅ Public]  → Create
+4. medicine-images    [✅ Public]  → Create
+5. news-images        [✅ Public]  → Create
+6. prescriptions      [❌ Private] → Create
+7. medical-reports    [❌ Private] → Create
+
+Done! ✅
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+📚 DETAILED GUIDE
+
+For more details, see: STEP_10_STORAGE_GUIDE.md
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+🎉 After creating all buckets, your setup is complete!
+
+Steps 1-9: ✅ Done (SQL migrations)
+Step 10:   ✅ Done (Storage buckets created manually)
+
+→ You're ready to start developing! 🚀
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

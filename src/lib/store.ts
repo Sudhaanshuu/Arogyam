@@ -6,6 +6,7 @@ interface UserState {
   profile: any | null;
   loading: boolean;
   error: string | null;
+  initialized: boolean;
   setUser: (user: any | null) => void;
   setProfile: (profile: any | null) => void;
   setLoading: (loading: boolean) => void;
@@ -14,103 +15,121 @@ interface UserState {
   logout: () => Promise<void>;
 }
 
-export const useUserStore = create<UserState>((set) => ({
+export const useUserStore = create<UserState>((set, get) => ({
   user: null,
   profile: null,
   loading: true,
   error: null,
-  setUser: (user) => set({ user }),
-  setProfile: (profile) => set({ profile }),
+  initialized: false,
+  setUser: (user) => {
+    console.log('Setting user:', user?.id);
+    set({ user });
+  },
+  setProfile: (profile) => {
+    console.log('Setting profile:', profile?.id);
+    set({ profile });
+  },
   setLoading: (loading) => set({ loading }),
   setError: (error) => set({ error }),
   loadUser: async () => {
+    const state = get();
+    
+    // Prevent multiple simultaneous loads
+    if (state.loading && state.initialized) {
+      console.log('Already loading user, skipping...');
+      return;
+    }
+
     try {
+      console.log('Loading user...');
       set({ loading: true, error: null });
       
-      // Force refresh session to avoid stale data
-      const { data, error: sessionError } = await supabase.auth.refreshSession();
+      // Get current session
+      const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+      
+      console.log('Session result:', { 
+        hasSession: !!session, 
+        userId: session?.user?.id,
+        error: sessionError 
+      });
       
       if (sessionError) {
-        console.warn('Session refresh failed:', sessionError);
-        // Fallback to getSession if refresh fails
-        const { data: fallbackData } = await supabase.auth.getSession();
-        if (fallbackData.session?.user) {
-          set({ user: fallbackData.session.user });
-          await loadUserProfile(fallbackData.session.user.id);
-        } else {
-          set({ user: null, profile: null });
-        }
-      } else if (data.session?.user) {
-        set({ user: data.session.user });
-        await loadUserProfile(data.session.user.id);
-      } else {
-        set({ user: null, profile: null });
+        console.error('Session error:', sessionError);
+        set({ user: null, profile: null, initialized: true, loading: false });
+        return;
       }
+      
+      if (!session?.user) {
+        console.log('No session found');
+        set({ user: null, profile: null, initialized: true, loading: false });
+        return;
+      }
+      
+      // Set user immediately
+      set({ user: session.user });
+      
+      // Try to load profile (non-blocking)
+      try {
+        const { data: profileData, error: profileError } = await supabase
+          .from('users')
+          .select('*')
+          .eq('id', session.user.id)
+          .maybeSingle();
+        
+        if (profileData) {
+          console.log('Profile loaded:', profileData.id);
+          set({ profile: profileData });
+        } else if (profileError) {
+          console.warn('Profile load error:', profileError);
+        } else {
+          console.warn('No profile found for user');
+        }
+      } catch (profileError) {
+        console.warn('Profile load failed:', profileError);
+      }
+      
+      set({ initialized: true, loading: false });
     } catch (error) {
-      console.error('Error loading user:', error);
-      set({ error: (error as Error).message, user: null, profile: null });
-    } finally {
-      set({ loading: false });
+      console.error('Fatal error loading user:', error);
+      set({ 
+        user: null, 
+        profile: null, 
+        error: error instanceof Error ? error.message : 'Unknown error',
+        initialized: true,
+        loading: false 
+      });
     }
   },
   logout: async () => {
     try {
+      console.log('Logging out...');
+      set({ loading: true });
+      
       await supabase.auth.signOut();
-      // Clear all state immediately
-      set({ user: null, profile: null, loading: false, error: null });
+      
+      // Clear all state
+      set({ 
+        user: null, 
+        profile: null, 
+        loading: false, 
+        error: null,
+        initialized: true
+      });
+      
+      console.log('Logout complete');
     } catch (error) {
       console.error('Error during logout:', error);
       // Still clear state even if logout fails
-      set({ user: null, profile: null, loading: false, error: null });
+      set({ 
+        user: null, 
+        profile: null, 
+        loading: false, 
+        error: null,
+        initialized: true
+      });
     }
   }
 }));
-
-// Helper function to load user profile with error handling
-const loadUserProfile = async (userId: string) => {
-  try {
-    // First try users table
-    let { data: profileData, error } = await supabase
-      .from('users')
-      .select('*')
-      .eq('id', userId)
-      .single();
-      
-    if (error && error.code === 'PGRST116') {
-      // Try profiles table as fallback
-      const { data: fallbackData, error: fallbackError } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', userId)
-        .single();
-        
-      if (fallbackError && fallbackError.code !== 'PGRST116') {
-        console.error('Error loading profile from both tables:', fallbackError);
-        return;
-      }
-      
-      if (fallbackData) {
-        // Transform profiles table data to match users table structure
-        profileData = {
-          id: fallbackData.id,
-          full_name: fallbackData.name,
-          email: fallbackData.email,
-          phone: fallbackData.phone,
-          city: fallbackData.city
-        };
-      }
-    } else if (error) {
-      console.error('Error loading profile:', error);
-      return;
-    }
-    
-    if (profileData) {
-      useUserStore.getState().setProfile(profileData);
-    }
-  } catch (error) {
-    console.error('Error in loadUserProfile:', error);
-  }
-};
 
 interface AppointmentState {
   selectedDoctor: any | null;

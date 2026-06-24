@@ -26,9 +26,12 @@ const Login: React.FC = () => {
   const onSubmit = async (data: LoginFormData) => {
     setLoading(true);
     try {
-      const { error } = await signIn(data.email, data.password);
+      console.log('Login attempt for:', data.email);
+      
+      const { data: signInData, error } = await signIn(data.email, data.password);
       
       if (error) {
+        console.error('Sign in error:', error);
         // Handle specific error types
         if (error.message.includes('Invalid login credentials')) {
           throw new Error('Invalid email or password. Please check your credentials.');
@@ -41,13 +44,16 @@ const Login: React.FC = () => {
         }
       }
       
-      // Force reload user data to avoid cache issues
-      await loadUser();
+      console.log('Sign in successful:', signInData?.user?.id);
+      
+      // Wait for auth state to propagate
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
       toast.success('Login successful!');
       navigate('/');
     } catch (error) {
       console.error('Error signing in:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Login failed. Please try again.';
+      const errorMessage = error instanceof Error ? error.message : 'Login failed. Please check your connection and try again.';
       toast.error(errorMessage);
     } finally {
       setLoading(false);

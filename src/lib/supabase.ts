@@ -7,7 +7,41 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error('Missing Supabase environment variables');
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true,
+    storage: {
+      getItem: (key) => {
+        try {
+          return localStorage.getItem(key);
+        } catch {
+          return null;
+        }
+      },
+      setItem: (key, value) => {
+        try {
+          localStorage.setItem(key, value);
+        } catch {
+          console.error('Failed to save session');
+        }
+      },
+      removeItem: (key) => {
+        try {
+          localStorage.removeItem(key);
+        } catch {
+          console.error('Failed to remove session');
+        }
+      }
+    }
+  },
+  global: {
+    headers: {
+      'X-Client-Info': 'arogyam-web'
+    }
+  }
+});
 
 // Auth functions
 export const signUp = async (email: string, password: string, fullName?: string) => {
