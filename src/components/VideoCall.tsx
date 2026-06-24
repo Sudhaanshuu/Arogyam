@@ -5,7 +5,7 @@ import AgoraRTC, {
   ICameraVideoTrack,
   IMicrophoneAudioTrack
 } from 'agora-rtc-react';
-import { Video, Mic, MicOff, VideoOff, PhoneOff, UserCircle } from 'lucide-react';
+import { Video, Mic, MicOff, VideoOff, PhoneOff, UserCircle, Users } from 'lucide-react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 
@@ -65,6 +65,20 @@ const VideoCall = ({ channelName, userName, onLeave }: VideoCallProps) => {
 
         console.log('Successfully joined channel with userId:', userId);
 
+        // Get all remote users already in the channel and add them to state
+        const remoteUsers = client.remoteUsers;
+        console.log('Remote users already in channel:', remoteUsers.length);
+        if (remoteUsers.length > 0) {
+          setUsers(remoteUsers);
+          remoteUsers.forEach(user => {
+            const extractedName = extractUserNameFromUid(user.uid.toString());
+            setUserNames(prev => ({
+              ...prev,
+              [user.uid.toString()]: extractedName
+            }));
+          });
+        }
+
         // Create audio and video tracks
         const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
         const videoTrack = await AgoraRTC.createCameraVideoTrack();
@@ -89,24 +103,30 @@ const VideoCall = ({ channelName, userName, onLeave }: VideoCallProps) => {
             [user.uid.toString()]: extractedName
           }));
           
-          if (mediaType === 'video') {
-            setUsers(prevUsers => {
-              const existingUser = prevUsers.find(u => u.uid === user.uid);
-              if (existingUser) {
-                return prevUsers.map(u => u.uid === user.uid ? user : u);
-              }
-              return [...prevUsers, user];
-            });
-          }
+          // Add user to the users array regardless of media type
+          setUsers(prevUsers => {
+            const existingUser = prevUsers.find(u => u.uid === user.uid);
+            if (existingUser) {
+              // Update existing user with new media
+              return prevUsers.map(u => u.uid === user.uid ? user : u);
+            }
+            // Add new user
+            return [...prevUsers, user];
+          });
+          
+          // Play audio track if it's available
           if (mediaType === 'audio') {
             user.audioTrack?.play();
           }
         });
 
-        client.on('user-unpublished', (user) => {
-          console.log('User unpublished:', user.uid);
-          setUsers(prevUsers => prevUsers.filter(u => u.uid !== user.uid));
-          // Keep the username in case user republishes
+        client.on('user-unpublished', (user, mediaType) => {
+          console.log('User unpublished:', user.uid, mediaType);
+          // Only remove user from array if they unpublished all media
+          // Update the user in the array to reflect unpublished media
+          setUsers(prevUsers => {
+            return prevUsers.map(u => u.uid === user.uid ? user : u);
+          });
         });
 
         client.on('user-left', (user) => {
@@ -259,12 +279,30 @@ const VideoCall = ({ channelName, userName, onLeave }: VideoCallProps) => {
       </div>
 
       <div className="relative z-10 h-full flex flex-col p-4">
-        <div className="flex-grow grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Participant Count */}
+        <div className="mb-4 flex justify-between items-center">
+          <div className="text-white bg-black/50 px-4 py-2 rounded-lg flex items-center">
+            <Users className="h-5 w-5 mr-2" />
+            <span className="font-semibold">{users.length + 1} Participant{users.length !== 0 ? 's' : ''}</span>
+          </div>
+          <div className="text-white bg-black/50 px-4 py-2 rounded-lg text-sm">
+            Room: <span className="font-semibold">{channelName}</span>
+          </div>
+        </div>
+
+        {/* Dynamic grid based on number of participants */}
+        <div className={`flex-grow grid gap-4 ${
+          users.length === 0 ? 'grid-cols-1' :
+          users.length === 1 ? 'grid-cols-1 md:grid-cols-2' :
+          users.length === 2 ? 'grid-cols-1 md:grid-cols-3' :
+          users.length === 3 ? 'grid-cols-2 md:grid-cols-2' :
+          'grid-cols-2 md:grid-cols-3 lg:grid-cols-4'
+        }`}>
           {/* Local Video */}
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="relative bg-gray-800/50 rounded-xl overflow-hidden border border-white/10 backdrop-blur-sm"
+            className="relative bg-gray-800/50 rounded-xl overflow-hidden border border-white/10 backdrop-blur-sm min-h-[200px]"
           >
             {isVideoEnabled && localVideoTrack ? (
               <div ref={node => node && localVideoTrack.play(node)} className="w-full h-full" />
@@ -273,11 +311,15 @@ const VideoCall = ({ channelName, userName, onLeave }: VideoCallProps) => {
                 <UserCircle className="h-20 w-20 text-gray-400" />
               </div>
             )}
-            <div className="absolute bottom-4 left-4 text-white font-semibold bg-black/50 px-3 py-1 rounded-lg flex items-center">
+            <div className="absolute top-4 left-4 text-white font-semibold bg-black/70 px-3 py-1 rounded-lg flex items-center text-sm">
               <UserCircle className="h-4 w-4 mr-2" />
               {userName} (You)
-              {!isVideoEnabled && " - Camera Off"}
             </div>
+            {!isVideoEnabled && (
+              <div className="absolute bottom-4 left-4 text-white text-xs bg-red-600/80 px-2 py-1 rounded">
+                Camera Off
+              </div>
+            )}
           </motion.div>
 
           {/* Remote Videos */}
@@ -286,7 +328,7 @@ const VideoCall = ({ channelName, userName, onLeave }: VideoCallProps) => {
               key={user.uid}
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="relative bg-gray-800/50 rounded-xl overflow-hidden border border-white/10 backdrop-blur-sm"
+              className="relative bg-gray-800/50 rounded-xl overflow-hidden border border-white/10 backdrop-blur-sm min-h-[200px]"
             >
               {user.videoTrack ? (
                 <div ref={node => node && user.videoTrack?.play(node)} className="w-full h-full" />
@@ -295,11 +337,20 @@ const VideoCall = ({ channelName, userName, onLeave }: VideoCallProps) => {
                   <UserCircle className="h-20 w-20 text-gray-400" />
                 </div>
               )}
-              <div className="absolute bottom-4 left-4 text-white font-semibold bg-black/50 px-3 py-1 rounded-lg flex items-center">
+              <div className="absolute top-4 left-4 text-white font-semibold bg-black/70 px-3 py-1 rounded-lg flex items-center text-sm">
                 <UserCircle className="h-4 w-4 mr-2" />
                 {userNames[user.uid.toString()] || `User ${user.uid}`}
-                {!user.videoTrack && " - Camera Off"}
               </div>
+              {!user.videoTrack && (
+                <div className="absolute bottom-4 left-4 text-white text-xs bg-red-600/80 px-2 py-1 rounded">
+                  Camera Off
+                </div>
+              )}
+              {user.hasAudio && (
+                <div className="absolute top-4 right-4 bg-green-600/80 px-2 py-1 rounded-full">
+                  <Mic className="h-3 w-3 text-white" />
+                </div>
+              )}
             </motion.div>
           ))}
         </div>
