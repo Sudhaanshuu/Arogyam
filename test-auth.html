@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Auth System Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        button {
+            background: linear-gradient(to right, #dc2626, #ec4899, #f97316);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        button:hover {
+            opacity: 0.9;
+        }
+        .status {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        pre {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        h2 {
+            color: #333;
+            border-bottom: 2px solid #dc2626;
+            padding-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔐 Arogyam Authentication System Test</h1>
+    <p>Use this page to test if the authentication system is working correctly.</p>
+
+    <div class="test-section">
+        <h2>Step 1: Check Auth Debug Tools</h2>
+        <button onclick="checkDebugTools()">Check Debug Tools</button>
+        <div id="debug-status"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Step 2: Check Current Session</h2>
+        <button onclick="checkSession()">Check Session</button>
+        <div id="session-status"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Step 3: Check Zustand Store</h2>
+        <button onclick="checkStore()">Check Store State</button>
+        <div id="store-status"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Step 4: Clear Auth Cache (if issues)</h2>
+        <button onclick="clearCache()">Clear Cache</button>
+        <div id="cache-status"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Step 5: Force Sign Out (if issues)</h2>
+        <button onclick="forceSignOut()">Force Sign Out</button>
+        <div id="signout-status"></div>
+    </div>
+
+    <div class="test-section">
+        <h2>Instructions</h2>
+        <ol>
+            <li><strong>Open your app</strong> in another tab (http://localhost:5173 or your dev server)</li>
+            <li><strong>Keep this tab open</strong> with dev tools console visible (F12)</li>
+            <li><strong>Click "Check Debug Tools"</strong> to verify utilities are loaded</li>
+            <li><strong>Try logging in</strong> on your app tab</li>
+            <li><strong>Come back here and click "Check Session"</strong> to see if you're logged in</li>
+            <li><strong>Click "Check Store State"</strong> to see if user data is in the store</li>
+            <li>If issues: Use "Clear Cache" and try again</li>
+        </ol>
+    </div>
+
+    <div class="test-section">
+        <h2>Expected Results</h2>
+        <div class="info">
+            ✅ After login, "Check Session" should show:<br>
+            - Session exists: true<br>
+            - User ID: [your user id]<br>
+            - User email: [your email]<br><br>
+            
+            ✅ "Check Store State" should show:<br>
+            - user: { id: "...", email: "..." }<br>
+            - profile: { id: "...", full_name: "..." }<br>
+            - loading: false<br>
+            - initialized: true<br><br>
+            
+            ❌ If session exists but store.user is null:<br>
+            → Store not updating properly, check console logs
+        </div>
+    </div>
+
+    <script>
+        function checkDebugTools() {
+            const status = document.getElementById('debug-status');
+            try {
+                if (window.opener && window.opener.authDebug) {
+                    status.innerHTML = '<div class="success">✅ Auth debug tools are available!</div>';
+                } else if (window.authDebug) {
+                    status.innerHTML = '<div class="success">✅ Auth debug tools are available in this window!</div>';
+                } else {
+                    status.innerHTML = '<div class="error">❌ Auth debug tools not found. Make sure the app is running.</div>';
+                }
+            } catch (error) {
+                status.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        async function checkSession() {
+            const status = document.getElementById('session-status');
+            status.innerHTML = '<div class="info">⏳ Checking session...</div>';
+            
+            try {
+                if (window.opener && window.opener.authDebug) {
+                    const result = await window.opener.authDebug.debugSession();
+                    status.innerHTML = `<div class="success">✅ Session check complete!</div><pre>${JSON.stringify(result, null, 2)}</pre>`;
+                } else {
+                    status.innerHTML = '<div class="error">❌ Cannot access debug tools. Open this page from your app or check console.</div>';
+                }
+            } catch (error) {
+                status.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        async function checkStore() {
+            const status = document.getElementById('store-status');
+            status.innerHTML = '<div class="info">⏳ Checking store state...</div>';
+            
+            try {
+                if (window.opener && window.opener.useUserStore) {
+                    const state = window.opener.useUserStore.getState();
+                    const stateData = {
+                        user: state.user ? { id: state.user.id, email: state.user.email } : null,
+                        profile: state.profile ? { id: state.profile.id, full_name: state.profile.full_name } : null,
+                        loading: state.loading,
+                        initialized: state.initialized,
+                        error: state.error
+                    };
+                    status.innerHTML = `<div class="success">✅ Store state retrieved!</div><pre>${JSON.stringify(stateData, null, 2)}</pre>`;
+                } else {
+                    status.innerHTML = '<div class="error">❌ Cannot access store. Open this page from your app.</div>';
+                }
+            } catch (error) {
+                status.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        function clearCache() {
+            const status = document.getElementById('cache-status');
+            status.innerHTML = '<div class="info">⏳ Clearing cache...</div>';
+            
+            try {
+                if (window.opener && window.opener.authDebug) {
+                    const result = window.opener.authDebug.clearAuthCache();
+                    if (result) {
+                        status.innerHTML = '<div class="success">✅ Cache cleared! Refresh your app to see changes.</div>';
+                    } else {
+                        status.innerHTML = '<div class="error">❌ Failed to clear cache.</div>';
+                    }
+                } else {
+                    status.innerHTML = '<div class="error">❌ Cannot access debug tools.</div>';
+                }
+            } catch (error) {
+                status.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        async function forceSignOut() {
+            const status = document.getElementById('signout-status');
+            status.innerHTML = '<div class="info">⏳ Forcing sign out...</div>';
+            
+            try {
+                if (window.opener && window.opener.authDebug) {
+                    await window.opener.authDebug.forceSignOut();
+                    status.innerHTML = '<div class="success">✅ Forced sign out complete! App will reload.</div>';
+                } else {
+                    status.innerHTML = '<div class="error">❌ Cannot access debug tools.</div>';
+                }
+            } catch (error) {
+                status.innerHTML = `<div class="error">❌ Error: ${error.message}</div>`;
+            }
+        }
+
+        // Check tools on load
+        window.addEventListener('load', () => {
+            setTimeout(checkDebugTools, 500);
+        });
+    </script>
+</body>
+</html>
