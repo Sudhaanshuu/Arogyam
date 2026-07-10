@@ -149,6 +149,13 @@ export const getDoctorsByCity = async (city: string) => {
   return { data, error };
 };
 
+export const getAllDoctors = async () => {
+  const { data, error } = await supabase
+    .from('available_doctors')
+    .select('*');
+  return { data, error };
+};
+
 export const getDoctorById = async (id: string) => {
   const { data, error } = await supabase
     .from('available_doctors')

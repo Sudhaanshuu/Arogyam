@@ -406,11 +406,11 @@ const VideoCall = ({ channelName, userName, onLeave }: VideoCallProps) => {
             whileTap={{ scale: 0.9 }}
             onClick={toggleVideo}
             className={`p-4 rounded-full ${
-              isVideoEnabled ? 'bg-gray-200 hover:bg-gray-300' : 'bg-red-600 hover:bg-red-700'
+              isVideoEnabled ? 'bg-white hover:bg-gray-100 border-2 border-gray-300' : 'bg-red-600 hover:bg-red-700'
             } transition-all shadow-md`}
           >
             {isVideoEnabled ? (
-              <Video className="h-6 w-6 text-white" />
+              <Video className="h-6 w-6 text-gray-800" />
             ) : (
               <VideoOff className="h-6 w-6 text-white" />
             )}
@@ -421,11 +421,11 @@ const VideoCall = ({ channelName, userName, onLeave }: VideoCallProps) => {
             whileTap={{ scale: 0.9 }}
             onClick={toggleAudio}
             className={`p-4 rounded-full ${
-              isAudioEnabled ? 'bg-gray-200 hover:bg-gray-300' : 'bg-red-600 hover:bg-red-700'
+              isAudioEnabled ? 'bg-white hover:bg-gray-100 border-2 border-gray-300' : 'bg-red-600 hover:bg-red-700'
             } transition-all shadow-md`}
           >
             {isAudioEnabled ? (
-              <Mic className="h-6 w-6 text-white" />
+              <Mic className="h-6 w-6 text-gray-800" />
             ) : (
               <MicOff className="h-6 w-6 text-white" />
             )}
@@ -435,7 +435,7 @@ const VideoCall = ({ channelName, userName, onLeave }: VideoCallProps) => {
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             onClick={handleLeave}
-            className="p-4 rounded-full bg-red-600 hover:bg-red-700 transition-all shadow-md"
+            className="p-4 rounded-full bg-red-600 hover:bg-red-700 transition-all shadow-md border-2 border-red-700"
           >
             <PhoneOff className="h-6 w-6 text-white" />
           </motion.button>
