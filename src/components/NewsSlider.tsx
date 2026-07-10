@@ -89,13 +89,13 @@ const NewsSlider: React.FC = () => {
   };
 
   return (
-    <section className="py-20 bg-gray-900 relative overflow-hidden">
+    <section className="py-20 bg-gray-50 relative overflow-hidden">
       {/* Background elements */}
       <div className="absolute inset-0 overflow-hidden">
         {[...Array(5)].map((_, i) => (
           <motion.div
             key={i}
-            className="absolute rounded-full bg-gradient-to-r from-red-600/20 via-pink-500/20 to-orange-500/20"
+            className="absolute rounded-full bg-gradient-to-r from-red-600/10 via-pink-500/10 to-orange-500/10"
             animate={{
               x: [Math.random() * window.innerWidth, Math.random() * window.innerWidth],
               y: [Math.random() * window.innerHeight, Math.random() * window.innerHeight],
@@ -122,7 +122,7 @@ const NewsSlider: React.FC = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5 }}
-            className="text-3xl md:text-4xl font-bold text-white"
+            className="text-3xl md:text-4xl font-bold text-gray-900"
           >
             Health <span className="bg-gradient-to-r from-red-600 via-pink-500 to-orange-500 text-transparent bg-clip-text">News</span> & Updates
           </motion.h2>
@@ -131,7 +131,7 @@ const NewsSlider: React.FC = () => {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.1 }}
-            className="mt-4 max-w-2xl mx-auto text-xl text-gray-300"
+            className="mt-4 max-w-2xl mx-auto text-xl text-gray-600"
           >
             Stay informed about the latest health news and viral diseases
           </motion.p>
@@ -145,8 +145,8 @@ const NewsSlider: React.FC = () => {
         >
           {loading ? (
             <div className="flex justify-center items-center h-64">
-              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-white border-r-transparent"></div>
-              <span className="ml-2 text-white">Loading news...</span>
+              <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-red-500 border-r-transparent"></div>
+              <span className="ml-2 text-gray-900">Loading news...</span>
             </div>
           ) : (
             <Swiper
@@ -165,7 +165,7 @@ const NewsSlider: React.FC = () => {
             >
               {displayNews.map((item) => (
                 <SwiperSlide key={item.id}>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center bg-gray-800/50 backdrop-blur-sm rounded-xl p-8">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center bg-white/80 backdrop-blur-sm rounded-xl p-8 shadow-md border border-gray-200">
                     <div className="h-64 md:h-96 overflow-hidden rounded-lg">
                       <img 
                         src={item.image_url} 
@@ -174,14 +174,14 @@ const NewsSlider: React.FC = () => {
                       />
                     </div>
                     <div className="text-left">
-                      <div className="flex items-center text-gray-400 mb-2">
+                      <div className="flex items-center text-gray-600 mb-2">
                         <Calendar className="h-4 w-4 mr-1" />
                         <span className="text-sm">{formatDate(item.created_at)}</span>
                         <span className="mx-2">•</span>
                         <span className="text-sm">{item.source}</span>
                       </div>
-                      <h3 className="text-2xl font-bold text-white mb-4">{item.title}</h3>
-                      <p className="text-gray-300 mb-6">{item.content}</p>
+                      <h3 className="text-2xl font-bold text-gray-900 mb-4">{item.title}</h3>
+                      <p className="text-gray-600 mb-6">{item.content}</p>
                       <a 
                         href={item.url} 
                         target="_blank" 

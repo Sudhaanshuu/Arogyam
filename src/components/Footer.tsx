@@ -4,7 +4,7 @@ import { Heart, Mail, Phone, MapPin } from 'lucide-react';
 
 const Footer: React.FC = () => {
   return (
-    <footer className="bg-gray-900 text-white">
+    <footer className="bg-white text-gray-900 border-t border-gray-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
           <div>
@@ -13,7 +13,7 @@ const Footer: React.FC = () => {
                 Arogyam Kiosk
               </span>
             </Link>
-            <p className="mt-4 text-gray-400">
+            <p className="mt-4 text-gray-600">
               Connecting rural communities with quality healthcare through telemedicine.
               Our mission is to make healthcare accessible to everyone, everywhere.
             </p>
@@ -22,7 +22,7 @@ const Footer: React.FC = () => {
                 <a
                   key={social}
                   href={`#${social}`}
-                  className="text-gray-400 hover:text-white transition-colors"
+                  className="text-gray-400 hover:text-gray-900 transition-colors"
                 >
                   <span className="sr-only">{social}</span>
                   <svg className="h-6 w-6" fill="currentColor" viewBox="0 0 24 24">
@@ -45,93 +45,93 @@ const Footer: React.FC = () => {
           </div>
           
           <div>
-            <h3 className="text-lg font-semibold mb-4">Quick Links</h3>
+            <h3 className="text-lg font-semibold mb-4 text-gray-900">Quick Links</h3>
             <ul className="space-y-2">
               <li>
-                <Link to="/" className="text-gray-400 hover:text-white transition-colors">Home</Link>
+                <Link to="/" className="text-gray-600 hover:text-gray-900 transition-colors">Home</Link>
               </li>
               <li>
-                <Link to="/about" className="text-gray-400 hover:text-white transition-colors">About Us</Link>
+                <Link to="/about" className="text-gray-600 hover:text-gray-900 transition-colors">About Us</Link>
               </li>
               <li>
-                <Link to="/services" className="text-gray-400 hover:text-white transition-colors">Services</Link>
+                <Link to="/services" className="text-gray-600 hover:text-gray-900 transition-colors">Services</Link>
               </li>
               <li>
-                <Link to="/doctors" className="text-gray-400 hover:text-white transition-colors">Find Doctors</Link>
+                <Link to="/doctors" className="text-gray-600 hover:text-gray-900 transition-colors">Find Doctors</Link>
               </li>
               <li>
-                <Link to="/medicines" className="text-gray-400 hover:text-white transition-colors">Medicines</Link>
+                <Link to="/medicines" className="text-gray-600 hover:text-gray-900 transition-colors">Medicines</Link>
               </li>
               <li>
-                <Link to="/contact" className="text-gray-400 hover:text-white transition-colors">Contact Us</Link>
+                <Link to="/contact" className="text-gray-600 hover:text-gray-900 transition-colors">Contact Us</Link>
               </li>
             </ul>
           </div>
           
           <div>
-            <h3 className="text-lg font-semibold mb-4">Services</h3>
+            <h3 className="text-lg font-semibold mb-4 text-gray-900">Services</h3>
             <ul className="space-y-2">
               <li>
-                <Link to="/telemedicine" className="text-gray-400 hover:text-white transition-colors">Telemedicine</Link>
+                <Link to="/telemedicine" className="text-gray-600 hover:text-gray-900 transition-colors">Telemedicine</Link>
               </li>
               <li>
-                <Link to="/appointments" className="text-gray-400 hover:text-white transition-colors">Appointment Booking</Link>
+                <Link to="/appointments" className="text-gray-600 hover:text-gray-900 transition-colors">Appointment Booking</Link>
               </li>
               <li>
-                <Link to="/medicines" className="text-gray-400 hover:text-white transition-colors">Ayurvedic Medicines</Link>
+                <Link to="/medicines" className="text-gray-600 hover:text-gray-900 transition-colors">Ayurvedic Medicines</Link>
               </li>
               <li>
-                <Link to="/messages" className="text-gray-400 hover:text-white transition-colors">Doctor Consultations</Link>
+                <Link to="/messages" className="text-gray-600 hover:text-gray-900 transition-colors">Doctor Consultations</Link>
               </li>
               <li>
-                <Link to="/news" className="text-gray-400 hover:text-white transition-colors">Health News</Link>
+                <Link to="/news" className="text-gray-600 hover:text-gray-900 transition-colors">Health News</Link>
               </li>
               <li>
-                <Link to="/faq" className="text-gray-400 hover:text-white transition-colors">FAQs</Link>
+                <Link to="/faq" className="text-gray-600 hover:text-gray-900 transition-colors">FAQs</Link>
               </li>
             </ul>
           </div>
           
           <div>
-            <h3 className="text-lg font-semibold mb-4">Contact Us</h3>
+            <h3 className="text-lg font-semibold mb-4 text-gray-900">Contact Us</h3>
             <ul className="space-y-4">
               <li className="flex items-start">
                 <MapPin className="h-5 w-5 text-red-500 mr-2 flex-shrink-0 mt-0.5" />
-                <span className="text-gray-400">
+                <span className="text-gray-600">
                   Retang, Mahura<br />
                   Bhubanewsar, Odisha 752054
                 </span>
               </li>
               <li className="flex items-center">
                 <Phone className="h-5 w-5 text-red-500 mr-2 flex-shrink-0" />
-                <span className="text-gray-400">+91 8252228793</span>
+                <span className="text-gray-600">+91 8252228793</span>
               </li>
               <li className="flex items-center">
                 <Mail className="h-5 w-5 text-red-500 mr-2 flex-shrink-0" />
-                <span className="text-gray-400">sudhaanshuu@gmail.com</span>
+                <span className="text-gray-600">sudhaanshuu@gmail.com</span>
               </li>
             </ul>
           </div>
         </div>
         
-        <div className="mt-12 pt-8 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center">
-          <p className="text-gray-400 text-sm">
+        <div className="mt-12 pt-8 border-t border-gray-200 flex flex-col md:flex-row justify-between items-center">
+          <p className="text-gray-600 text-sm">
             &copy; {new Date().getFullYear()} Arogyam Kiosk. All rights reserved.
           </p>
           <div className="mt-4 md:mt-0 flex space-x-6">
-            <Link to="/privacy" className="text-gray-400 hover:text-white text-sm transition-colors">
+            <Link to="/privacy" className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
               Privacy Policy
             </Link>
-            <Link to="/terms" className="text-gray-400 hover:text-white text-sm transition-colors">
+            <Link to="/terms" className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
               Terms of Service
             </Link>
-            <Link to="/sitemap" className="text-gray-400 hover:text-white text-sm transition-colors">
+            <Link to="/sitemap" className="text-gray-600 hover:text-gray-900 text-sm transition-colors">
               Sitemap
             </Link>
           </div>
         </div>
         
-        <div className="mt-6 text-center text-gray-400 text-sm flex items-center justify-center">
+        <div className="mt-6 text-center text-gray-600 text-sm flex items-center justify-center">
           <span>Made with</span>
           <Heart className="h-4 w-4 text-red-500 mx-1" />
           <span>for rural healthcare</span>

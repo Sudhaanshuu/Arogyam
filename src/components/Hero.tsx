@@ -5,13 +5,13 @@ import { Calendar, MessageSquare, Pill, Users } from 'lucide-react';
 
 const Hero: React.FC = () => {
   return (
-    <div className="relative min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black overflow-hidden">
+    <div className="relative min-h-screen bg-gradient-to-br from-white via-gray-50 to-gray-100 overflow-hidden">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
         {[...Array(20)].map((_, i) => (
           <motion.div
             key={i}
-            className="absolute rounded-full bg-gradient-to-r from-red-600 via-pink-500 to-orange-500 opacity-20"
+            className="absolute rounded-full bg-gradient-to-r from-red-600 via-pink-500 to-orange-500 opacity-10"
             initial={{
               x: Math.random() * window.innerWidth,
               y: Math.random() * window.innerHeight,
@@ -53,12 +53,12 @@ const Hero: React.FC = () => {
           className="text-center"
         >
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight">
-            <span className="block text-white">Healthcare Reimagined for</span>
+            <span className="block text-gray-900">Healthcare Reimagined for</span>
             <span className="block bg-gradient-to-r from-red-600 via-pink-500 to-orange-500 text-transparent bg-clip-text mt-2">
               Rural Communities
             </span>
           </h1>
-          <p className="mt-6 max-w-2xl mx-auto text-xl text-gray-300">
+          <p className="mt-6 max-w-2xl mx-auto text-xl text-gray-600">
             Connect with expert doctors through telemedicine, book appointments, and access quality healthcare from anywhere.
           </p>
           <div className="mt-10 flex justify-center space-x-4">
@@ -70,7 +70,7 @@ const Hero: React.FC = () => {
             </Link>
             <Link
               to="/doctors"
-              className="px-8 py-3 border border-white text-base font-medium rounded-md text-white hover:bg-white/10 md:py-4 md:text-lg md:px-10 transform transition hover:scale-105"
+              className="px-8 py-3 border border-gray-300 text-base font-medium rounded-md text-gray-700 hover:bg-gray-50 md:py-4 md:text-lg md:px-10 transform transition hover:scale-105"
             >
               Find Doctors
             </Link>
@@ -115,16 +115,16 @@ const Hero: React.FC = () => {
               whileHover={{ scale: 1.05, y: -5 }}
               className="relative group"
             >
-              <div className="absolute inset-0 bg-gradient-to-r from-red-600 via-pink-500 to-orange-500 rounded-xl opacity-50 blur-lg group-hover:opacity-100 transition-opacity"></div>
-              <div className="relative h-full bg-gray-800 border border-gray-700 rounded-xl p-6 backdrop-blur-sm overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-r from-red-600/10 via-pink-500/10 to-orange-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+              <div className="absolute inset-0 bg-gradient-to-r from-red-600 via-pink-500 to-orange-500 rounded-xl opacity-30 blur-lg group-hover:opacity-60 transition-opacity"></div>
+              <div className="relative h-full bg-white border border-gray-200 rounded-xl p-6 backdrop-blur-sm overflow-hidden shadow-md">
+                <div className="absolute inset-0 bg-gradient-to-r from-red-600/5 via-pink-500/5 to-orange-500/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
                 <div className="relative z-10">
                   <div className="flex justify-center items-center h-12 w-12 rounded-md bg-gradient-to-r from-red-600 via-pink-500 to-orange-500 mx-auto">
                     {feature.icon}
                   </div>
-                  <h3 className="mt-4 text-xl font-medium text-white text-center">{feature.title}</h3>
-                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-gray-900/80 p-6 rounded-xl">
-                    <p className="text-gray-200 text-center">{feature.description}</p>
+                  <h3 className="mt-4 text-xl font-medium text-gray-900 text-center">{feature.title}</h3>
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-white/95 p-6 rounded-xl">
+                    <p className="text-gray-700 text-center">{feature.description}</p>
                   </div>
                 </div>
               </div>
@@ -137,7 +137,7 @@ const Hero: React.FC = () => {
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.8 }}
-          className="mt-20 bg-gray-800/50 backdrop-blur-sm rounded-xl p-8 border border-gray-700"
+          className="mt-20 bg-white/80 backdrop-blur-sm rounded-xl p-8 border border-gray-200 shadow-lg"
         >
           <dl className="grid grid-cols-1 gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-4 text-center">
             {[
@@ -147,7 +147,7 @@ const Hero: React.FC = () => {
               { label: "Ayurvedic Medicines", value: "1,000+" },
             ].map((stat, index) => (
               <div key={index} className="flex flex-col items-center">
-                <dt className="text-sm font-medium text-gray-400">{stat.label}</dt>
+                <dt className="text-sm font-medium text-gray-600">{stat.label}</dt>
                 <dd className="text-3xl font-extrabold bg-gradient-to-r from-red-600 via-pink-500 to-orange-500 text-transparent bg-clip-text">{stat.value}</dd>
               </div>
             ))}

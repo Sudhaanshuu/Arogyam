@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
-import { Users, MapPin, Star, Phone, Mail, Calendar } from 'lucide-react';
+import { Users, MapPin, Star } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { getDoctorsByCity } from '../lib/supabase';
+import { getDoctorsByCity, getAllDoctors } from '../lib/supabase';
 import 'leaflet/dist/leaflet.css';
 import { useAppointmentStore } from '../lib/store';
 import { useNavigate } from 'react-router-dom';
@@ -52,6 +52,7 @@ const BestDoctors: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [mapCenter, setMapCenter] = useState<[number, number]>([20.5937, 78.9629]); // Default to center of India
   const [zoom, setZoom] = useState(4);
+  const [showAllDoctors, setShowAllDoctors] = useState(false);
 
   const cities: City[] = [
     { name: 'Delhi', latitude: 28.6139, longitude: 77.2090 },
@@ -65,12 +66,13 @@ const BestDoctors: React.FC = () => {
   ];
 
   useEffect(() => {
+    setShowAllDoctors(false);
     if (selectedCity) {
       fetchDoctorsByCity(selectedCity.name);
       setMapCenter([selectedCity.latitude, selectedCity.longitude]);
       setZoom(12);
     } else {
-      setDoctors([]);
+      fetchAllDoctors();
       setMapCenter([20.5937, 78.9629]);
       setZoom(4);
     }
@@ -84,6 +86,19 @@ const BestDoctors: React.FC = () => {
       setDoctors(data || []);
     } catch (error) {
       console.error('Error fetching doctors:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchAllDoctors = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await getAllDoctors();
+      if (error) throw error;
+      setDoctors(data || []);
+    } catch (error) {
+      console.error('Error fetching all doctors:', error);
     } finally {
       setLoading(false);
     }
@@ -162,7 +177,7 @@ const BestDoctors: React.FC = () => {
           >
             <div className="bg-white rounded-xl shadow-md p-6">
               <h3 className="text-xl font-semibold text-gray-900 mb-4">
-                {selectedCity ? `Doctors in ${selectedCity.name}` : 'Select a city to view doctors'}
+                {selectedCity ? `Doctors in ${selectedCity.name}` : 'All Doctors in India'}
               </h3>
               
               {loading ? (
@@ -172,15 +187,19 @@ const BestDoctors: React.FC = () => {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {doctors.length === 0 && selectedCity && (
+                  {doctors.length === 0 && !loading && (
                     <div className="text-center py-8">
                       <Users className="h-12 w-12 text-gray-400 mx-auto" />
-                      <p className="mt-2 text-gray-500">No doctors found in {selectedCity.name}</p>
-                      <p className="text-sm text-gray-400">Try selecting another city</p>
+                      <p className="mt-2 text-gray-500">
+                        {selectedCity ? `No doctors found in ${selectedCity.name}` : 'No doctors found'}
+                      </p>
+                      <p className="text-sm text-gray-400">
+                        {selectedCity ? 'Try selecting another city' : 'Please check back later'}
+                      </p>
                     </div>
                   )}
                   
-                  {doctors.map((doctor) => (
+                  {(showAllDoctors ? doctors : doctors.slice(0, 3)).map((doctor) => (
                     <motion.div
                       key={doctor.id}
                       whileHover={{ y: -5 }}
@@ -231,6 +250,15 @@ const BestDoctors: React.FC = () => {
                       </div>
                     </motion.div>
                   ))}
+                  
+                  {doctors.length > 3 && (
+                    <button
+                      onClick={() => setShowAllDoctors(!showAllDoctors)}
+                      className="w-full py-2 px-4 bg-white border border-gray-300 text-gray-700 text-sm rounded-md hover:bg-gray-50 transition-colors"
+                    >
+                      {showAllDoctors ? 'Show Less' : `Show All (${doctors.length})`}
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -255,10 +283,10 @@ const BestDoctors: React.FC = () => {
       url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
     />
     
-    {/* City markers */}
+    {/* City markers - only show when no city is selected */}
     {!selectedCity && cities.map((city) => (
       <Marker 
-        key={city.name}
+        key={`city-${city.name}`}
         position={[city.latitude, city.longitude]}
         eventHandlers={{
           click: () => setSelectedCity(city),
@@ -278,10 +306,10 @@ const BestDoctors: React.FC = () => {
       </Marker>
     ))}
     
-    {/* Doctor markers */}
-    {doctors.map((doctor) => (
+    {/* Doctor markers - show for all doctors when no city selected, or filtered by city */}
+    {doctors.filter(doctor => doctor.latitude && doctor.longitude).map((doctor) => (
       <Marker
-        key={doctor.id}
+        key={`doctor-${doctor.id}`}
         position={[doctor.latitude, doctor.longitude]}
       >
         <Popup>

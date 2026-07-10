@@ -29,7 +29,7 @@ const VideoCallPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black py-20 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-white via-gray-50 to-gray-100 py-20 px-4">
       {isInCall ? (
         <div className="max-w-7xl mx-auto h-[80vh] rounded-xl overflow-hidden">
           <VideoCall
@@ -46,7 +46,7 @@ const VideoCallPage: React.FC = () => {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white/10 backdrop-blur-lg rounded-xl p-8 shadow-lg border border-white/20"
+            className="bg-white rounded-xl p-8 shadow-lg border border-gray-200"
           >
             <div className="flex items-center justify-center mb-8">
               <div className="p-3 rounded-full bg-gradient-to-r from-red-600 via-pink-500 to-orange-500">
@@ -54,16 +54,16 @@ const VideoCallPage: React.FC = () => {
               </div>
             </div>
 
-            <h1 className="text-3xl font-bold text-center text-white mb-2">
+            <h1 className="text-3xl font-bold text-center text-gray-900 mb-2">
               Join Video Consultation
             </h1>
-            <p className="text-gray-300 text-center mb-8">
+            <p className="text-gray-600 text-center mb-8">
               Enter your consultation room ID to connect with your doctor
             </p>
 
             <form onSubmit={joinRoom} className="space-y-6">
               <div>
-                <label htmlFor="roomId" className="block text-sm font-medium text-gray-300 mb-2">
+                <label htmlFor="roomId" className="block text-sm font-medium text-gray-700 mb-2">
                   Consultation Room ID
                 </label>
                 <input
@@ -72,12 +72,12 @@ const VideoCallPage: React.FC = () => {
                   value={roomId}
                   onChange={(e) => setRoomId(e.target.value)}
                   placeholder="Enter room ID"
-                  className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-white placeholder-gray-400"
+                  className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500 text-gray-900 placeholder-gray-400"
                   required
                 />
               </div>
 
-              <div className="flex items-center text-sm text-gray-400 bg-white/5 p-4 rounded-lg">
+              <div className="flex items-center text-sm text-gray-600 bg-gray-50 p-4 rounded-lg border border-gray-200">
                 <Users className="h-5 w-5 mr-2" />
                 <span>Joining as: {user?.user_metadata?.name || user?.email || 'Anonymous'}</span>
               </div>
