@@ -69,14 +69,31 @@ const VideoCall = ({ channelName, userName, onLeave }: VideoCallProps) => {
         const remoteUsers = client.remoteUsers;
         console.log('Remote users already in channel:', remoteUsers.length);
         if (remoteUsers.length > 0) {
+          // Subscribe to existing users' media tracks
+          for (const user of remoteUsers) {
+            try {
+              // Subscribe to video if available
+              if (user.videoTrack) {
+                await client.subscribe(user, 'video');
+                console.log('Subscribed to video for existing user:', user.uid);
+              }
+              // Subscribe to audio if available
+              if (user.audioTrack) {
+                await client.subscribe(user, 'audio');
+                console.log('Subscribed to audio for existing user:', user.uid);
+                user.audioTrack?.play();
+              }
+              // Extract and store username
+              const extractedName = extractUserNameFromUid(user.uid.toString());
+              setUserNames(prev => ({
+                ...prev,
+                [user.uid.toString()]: extractedName
+              }));
+            } catch (error) {
+              console.error('Error subscribing to existing user:', user.uid, error);
+            }
+          }
           setUsers(remoteUsers);
-          remoteUsers.forEach(user => {
-            const extractedName = extractUserNameFromUid(user.uid.toString());
-            setUserNames(prev => ({
-              ...prev,
-              [user.uid.toString()]: extractedName
-            }));
-          });
         }
 
         // Create audio and video tracks
