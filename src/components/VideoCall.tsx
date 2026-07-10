@@ -65,36 +65,59 @@ const VideoCall = ({ channelName, userName, onLeave }: VideoCallProps) => {
 
         console.log('Successfully joined channel with userId:', userId);
 
-        // Get all remote users already in the channel and add them to state
-        const remoteUsers = client.remoteUsers;
-        console.log('Remote users already in channel:', remoteUsers.length);
-        if (remoteUsers.length > 0) {
-          // Subscribe to existing users' media tracks
-          for (const user of remoteUsers) {
-            try {
-              // Subscribe to video if available
-              if (user.videoTrack) {
-                await client.subscribe(user, 'video');
-                console.log('Subscribed to video for existing user:', user.uid);
+        // Function to check and subscribe to remote users
+        const checkAndSubscribeToRemoteUsers = async () => {
+          const remoteUsers = client.remoteUsers;
+          console.log('Checking remote users:', remoteUsers.length);
+          console.log('Remote users details:', remoteUsers.map(u => ({
+            uid: u.uid,
+            hasVideo: !!u.videoTrack,
+            hasAudio: !!u.audioTrack
+          })));
+          
+          if (remoteUsers.length > 0) {
+            for (const user of remoteUsers) {
+              try {
+                console.log('Processing existing user:', user.uid, 'video:', !!user.videoTrack, 'audio:', !!user.audioTrack);
+                
+                // Subscribe to video if available
+                if (user.videoTrack) {
+                  await client.subscribe(user, 'video');
+                  console.log('Subscribed to video for existing user:', user.uid);
+                }
+                
+                // Subscribe to audio if available
+                if (user.audioTrack) {
+                  await client.subscribe(user, 'audio');
+                  console.log('Subscribed to audio for existing user:', user.uid);
+                  user.audioTrack?.play();
+                }
+                
+                // Extract and store username
+                const extractedName = extractUserNameFromUid(user.uid.toString());
+                setUserNames(prev => ({
+                  ...prev,
+                  [user.uid.toString()]: extractedName
+                }));
+              } catch (error) {
+                console.error('Error subscribing to existing user:', user.uid, error);
               }
-              // Subscribe to audio if available
-              if (user.audioTrack) {
-                await client.subscribe(user, 'audio');
-                console.log('Subscribed to audio for existing user:', user.uid);
-                user.audioTrack?.play();
-              }
-              // Extract and store username
-              const extractedName = extractUserNameFromUid(user.uid.toString());
-              setUserNames(prev => ({
-                ...prev,
-                [user.uid.toString()]: extractedName
-              }));
-            } catch (error) {
-              console.error('Error subscribing to existing user:', user.uid, error);
             }
+            setUsers(remoteUsers);
+            console.log('Set users array with existing users:', remoteUsers.length);
+          } else {
+            console.log('No existing remote users found in channel');
           }
-          setUsers(remoteUsers);
-        }
+        };
+
+        // Check immediately
+        await checkAndSubscribeToRemoteUsers();
+        
+        // Also check after a short delay to catch any users that might not be immediately available
+        setTimeout(async () => {
+          console.log('Retrying remote user check after delay...');
+          await checkAndSubscribeToRemoteUsers();
+        }, 2000);
 
         // Create audio and video tracks
         const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
