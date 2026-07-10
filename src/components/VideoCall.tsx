@@ -65,36 +65,59 @@ const VideoCall = ({ channelName, userName, onLeave }: VideoCallProps) => {
 
         console.log('Successfully joined channel with userId:', userId);
 
-        // Get all remote users already in the channel and add them to state
-        const remoteUsers = client.remoteUsers;
-        console.log('Remote users already in channel:', remoteUsers.length);
-        if (remoteUsers.length > 0) {
-          // Subscribe to existing users' media tracks
-          for (const user of remoteUsers) {
-            try {
-              // Subscribe to video if available
-              if (user.videoTrack) {
-                await client.subscribe(user, 'video');
-                console.log('Subscribed to video for existing user:', user.uid);
+        // Function to check and subscribe to remote users
+        const checkAndSubscribeToRemoteUsers = async () => {
+          const remoteUsers = client.remoteUsers;
+          console.log('Checking remote users:', remoteUsers.length);
+          console.log('Remote users details:', remoteUsers.map(u => ({
+            uid: u.uid,
+            hasVideo: !!u.videoTrack,
+            hasAudio: !!u.audioTrack
+          })));
+          
+          if (remoteUsers.length > 0) {
+            for (const user of remoteUsers) {
+              try {
+                console.log('Processing existing user:', user.uid, 'video:', !!user.videoTrack, 'audio:', !!user.audioTrack);
+                
+                // Subscribe to video if available
+                if (user.videoTrack) {
+                  await client.subscribe(user, 'video');
+                  console.log('Subscribed to video for existing user:', user.uid);
+                }
+                
+                // Subscribe to audio if available
+                if (user.audioTrack) {
+                  await client.subscribe(user, 'audio');
+                  console.log('Subscribed to audio for existing user:', user.uid);
+                  user.audioTrack?.play();
+                }
+                
+                // Extract and store username
+                const extractedName = extractUserNameFromUid(user.uid.toString());
+                setUserNames(prev => ({
+                  ...prev,
+                  [user.uid.toString()]: extractedName
+                }));
+              } catch (error) {
+                console.error('Error subscribing to existing user:', user.uid, error);
               }
-              // Subscribe to audio if available
-              if (user.audioTrack) {
-                await client.subscribe(user, 'audio');
-                console.log('Subscribed to audio for existing user:', user.uid);
-                user.audioTrack?.play();
-              }
-              // Extract and store username
-              const extractedName = extractUserNameFromUid(user.uid.toString());
-              setUserNames(prev => ({
-                ...prev,
-                [user.uid.toString()]: extractedName
-              }));
-            } catch (error) {
-              console.error('Error subscribing to existing user:', user.uid, error);
             }
+            setUsers(remoteUsers);
+            console.log('Set users array with existing users:', remoteUsers.length);
+          } else {
+            console.log('No existing remote users found in channel');
           }
-          setUsers(remoteUsers);
-        }
+        };
+
+        // Check immediately
+        await checkAndSubscribeToRemoteUsers();
+        
+        // Also check after a short delay to catch any users that might not be immediately available
+        setTimeout(async () => {
+          console.log('Retrying remote user check after delay...');
+          await checkAndSubscribeToRemoteUsers();
+        }, 2000);
 
         // Create audio and video tracks
         const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
@@ -246,10 +269,10 @@ const VideoCall = ({ channelName, userName, onLeave }: VideoCallProps) => {
   // Show connection status
   if (connectionStatus === 'connecting') {
     return (
-      <div className="relative h-full bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center">
+      <div className="relative h-full bg-gradient-to-br from-white via-gray-50 to-gray-100 flex items-center justify-center">
         <div className="text-center">
           <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-red-500 border-r-transparent mb-4"></div>
-          <p className="text-white text-lg">Connecting to video call...</p>
+          <p className="text-gray-900 text-lg">Connecting to video call...</p>
           <button 
             onClick={onLeave}
             className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
@@ -263,13 +286,13 @@ const VideoCall = ({ channelName, userName, onLeave }: VideoCallProps) => {
 
   if (connectionStatus === 'failed') {
     return (
-      <div className="relative h-full bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center">
+      <div className="relative h-full bg-gradient-to-br from-white via-gray-50 to-gray-100 flex items-center justify-center">
         <div className="text-center">
           <div className="text-red-500 mb-4">
             <Video className="h-16 w-16 mx-auto mb-2" />
           </div>
-          <p className="text-white text-lg mb-2">Failed to connect to video call</p>
-          <p className="text-gray-400 text-sm mb-4">Please check your internet connection and try again</p>
+          <p className="text-gray-900 text-lg mb-2">Failed to connect to video call</p>
+          <p className="text-gray-600 text-sm mb-4">Please check your internet connection and try again</p>
           <div className="space-x-4">
             <button 
               onClick={() => window.location.reload()}
@@ -290,19 +313,19 @@ const VideoCall = ({ channelName, userName, onLeave }: VideoCallProps) => {
   }
 
   return (
-    <div className="relative h-full bg-gradient-to-br from-gray-900 via-gray-800 to-black">
+    <div className="relative h-full bg-gradient-to-br from-white via-gray-50 to-gray-100">
       <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-red-600/20 via-pink-500/20 to-orange-500/20 opacity-50" />
+        <div className="absolute inset-0 bg-gradient-to-br from-red-600/10 via-pink-500/10 to-orange-500/10 opacity-50" />
       </div>
 
       <div className="relative z-10 h-full flex flex-col p-4">
         {/* Participant Count */}
         <div className="mb-4 flex justify-between items-center">
-          <div className="text-white bg-black/50 px-4 py-2 rounded-lg flex items-center">
+          <div className="text-gray-900 bg-white/70 px-4 py-2 rounded-lg flex items-center shadow-sm border border-gray-200">
             <Users className="h-5 w-5 mr-2" />
             <span className="font-semibold">{users.length + 1} Participant{users.length !== 0 ? 's' : ''}</span>
           </div>
-          <div className="text-white bg-black/50 px-4 py-2 rounded-lg text-sm">
+          <div className="text-gray-900 bg-white/70 px-4 py-2 rounded-lg text-sm shadow-sm border border-gray-200">
             Room: <span className="font-semibold">{channelName}</span>
           </div>
         </div>
@@ -319,21 +342,21 @@ const VideoCall = ({ channelName, userName, onLeave }: VideoCallProps) => {
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="relative bg-gray-800/50 rounded-xl overflow-hidden border border-white/10 backdrop-blur-sm min-h-[200px]"
+            className="relative bg-white/70 rounded-xl overflow-hidden border border-gray-200 backdrop-blur-sm min-h-[200px] shadow-sm"
           >
             {isVideoEnabled && localVideoTrack ? (
               <div ref={node => node && localVideoTrack.play(node)} className="w-full h-full" />
             ) : (
               <div className="w-full h-full flex items-center justify-center">
-                <UserCircle className="h-20 w-20 text-gray-400" />
+                <UserCircle className="h-20 w-20 text-gray-300" />
               </div>
             )}
-            <div className="absolute top-4 left-4 text-white font-semibold bg-black/70 px-3 py-1 rounded-lg flex items-center text-sm">
+            <div className="absolute top-4 left-4 text-gray-900 font-semibold bg-white/80 px-3 py-1 rounded-lg flex items-center text-sm shadow-sm border border-gray-200">
               <UserCircle className="h-4 w-4 mr-2" />
               {userName} (You)
             </div>
             {!isVideoEnabled && (
-              <div className="absolute bottom-4 left-4 text-white text-xs bg-red-600/80 px-2 py-1 rounded">
+              <div className="absolute bottom-4 left-4 text-white text-xs bg-red-600/90 px-2 py-1 rounded shadow-sm">
                 Camera Off
               </div>
             )}
@@ -345,21 +368,21 @@ const VideoCall = ({ channelName, userName, onLeave }: VideoCallProps) => {
               key={user.uid}
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              className="relative bg-gray-800/50 rounded-xl overflow-hidden border border-white/10 backdrop-blur-sm min-h-[200px]"
+              className="relative bg-white/70 rounded-xl overflow-hidden border border-gray-200 backdrop-blur-sm min-h-[200px] shadow-sm"
             >
               {user.videoTrack ? (
                 <div ref={node => node && user.videoTrack?.play(node)} className="w-full h-full" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
-                  <UserCircle className="h-20 w-20 text-gray-400" />
+                  <UserCircle className="h-20 w-20 text-gray-300" />
                 </div>
               )}
-              <div className="absolute top-4 left-4 text-white font-semibold bg-black/70 px-3 py-1 rounded-lg flex items-center text-sm">
+              <div className="absolute top-4 left-4 text-gray-900 font-semibold bg-white/80 px-3 py-1 rounded-lg flex items-center text-sm shadow-sm border border-gray-200">
                 <UserCircle className="h-4 w-4 mr-2" />
                 {userNames[user.uid.toString()] || `User ${user.uid}`}
               </div>
               {!user.videoTrack && (
-                <div className="absolute bottom-4 left-4 text-white text-xs bg-red-600/80 px-2 py-1 rounded">
+                <div className="absolute bottom-4 left-4 text-white text-xs bg-red-600/90 px-2 py-1 rounded shadow-sm">
                   Camera Off
                 </div>
               )}
@@ -383,8 +406,8 @@ const VideoCall = ({ channelName, userName, onLeave }: VideoCallProps) => {
             whileTap={{ scale: 0.9 }}
             onClick={toggleVideo}
             className={`p-4 rounded-full ${
-              isVideoEnabled ? 'bg-gray-700 hover:bg-gray-600' : 'bg-red-600 hover:bg-red-700'
-            } transition-all`}
+              isVideoEnabled ? 'bg-gray-200 hover:bg-gray-300' : 'bg-red-600 hover:bg-red-700'
+            } transition-all shadow-md`}
           >
             {isVideoEnabled ? (
               <Video className="h-6 w-6 text-white" />
@@ -398,8 +421,8 @@ const VideoCall = ({ channelName, userName, onLeave }: VideoCallProps) => {
             whileTap={{ scale: 0.9 }}
             onClick={toggleAudio}
             className={`p-4 rounded-full ${
-              isAudioEnabled ? 'bg-gray-700 hover:bg-gray-600' : 'bg-red-600 hover:bg-red-700'
-            } transition-all`}
+              isAudioEnabled ? 'bg-gray-200 hover:bg-gray-300' : 'bg-red-600 hover:bg-red-700'
+            } transition-all shadow-md`}
           >
             {isAudioEnabled ? (
               <Mic className="h-6 w-6 text-white" />
@@ -412,7 +435,7 @@ const VideoCall = ({ channelName, userName, onLeave }: VideoCallProps) => {
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.9 }}
             onClick={handleLeave}
-            className="p-4 rounded-full bg-red-600 hover:bg-red-700 transition-all"
+            className="p-4 rounded-full bg-red-600 hover:bg-red-700 transition-all shadow-md"
           >
             <PhoneOff className="h-6 w-6 text-white" />
           </motion.button>
