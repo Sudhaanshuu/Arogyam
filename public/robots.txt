@@ -1,0 +1,7 @@
+# robots.txt for arogyam.pixir.in
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /profile
+
+Sitemap: https://arogyam.pixir.in/sitemap.xml

@@ -4,6 +4,9 @@ import { supabase } from './supabase';
 interface UserState {
   user: any | null;
   profile: any | null;
+  role: 'patient' | 'doctor' | 'admin';
+  isAdmin: boolean;
+  isDoctor: boolean;
   loading: boolean;
   error: string | null;
   initialized: boolean;
@@ -18,15 +21,16 @@ interface UserState {
 export const useUserStore = create<UserState>((set, get) => ({
   user: null,
   profile: null,
+  role: 'patient',
+  isAdmin: false,
+  isDoctor: false,
   loading: true,
   error: null,
   initialized: false,
   setUser: (user) => {
-    console.log('Setting user:', user?.id);
     set({ user });
   },
   setProfile: (profile) => {
-    console.log('Setting profile:', profile?.id);
     set({ profile });
   },
   setLoading: (loading) => set({ loading }),
@@ -34,95 +38,128 @@ export const useUserStore = create<UserState>((set, get) => ({
   loadUser: async () => {
     const state = get();
     
-    // Prevent multiple simultaneous loads
     if (state.loading && state.initialized) {
-      console.log('Already loading user, skipping...');
       return;
     }
 
     try {
-      console.log('Loading user...');
       set({ loading: true, error: null });
       
-      // Get current session
       const { data: { session }, error: sessionError } = await supabase.auth.getSession();
       
-      console.log('Session result:', { 
-        hasSession: !!session, 
-        userId: session?.user?.id,
-        error: sessionError 
-      });
-      
-      if (sessionError) {
-        console.error('Session error:', sessionError);
-        set({ user: null, profile: null, initialized: true, loading: false });
+      if (sessionError || !session?.user) {
+        set({ 
+          user: null, 
+          profile: null, 
+          role: 'patient',
+          isAdmin: false,
+          isDoctor: false,
+          initialized: true, 
+          loading: false 
+        });
         return;
       }
       
-      if (!session?.user) {
-        console.log('No session found');
-        set({ user: null, profile: null, initialized: true, loading: false });
-        return;
-      }
-      
-      // Set user immediately
-      set({ user: session.user });
-      
-      // Try to load profile (non-blocking)
+      const user = session.user;
+      let role: 'patient' | 'doctor' | 'admin' = (user.user_metadata?.role as any) || 'patient';
+      let isAdmin = role === 'admin' || user.email?.toLowerCase().includes('admin') || false;
+      let isDoctor = role === 'doctor';
+
+      // Load profile from users table
+      let profileData = null;
       try {
-        const { data: profileData, error: profileError } = await supabase
+        const { data, error } = await supabase
           .from('users')
           .select('*')
-          .eq('id', session.user.id)
+          .eq('id', user.id)
           .maybeSingle();
         
-        if (profileData) {
-          console.log('Profile loaded:', profileData.id);
-          set({ profile: profileData });
-        } else if (profileError) {
-          console.warn('Profile load error:', profileError);
-        } else {
-          console.warn('No profile found for user');
+        if (data) {
+          profileData = data;
         }
-      } catch (profileError) {
-        console.warn('Profile load failed:', profileError);
+      } catch (err) {
+        console.warn('Profile load from users table failed:', err);
       }
-      
-      set({ initialized: true, loading: false });
+
+      // Check profiles table for is_admin flag if not already identified
+      if (!isAdmin) {
+        try {
+          const { data: pData } = await supabase
+            .from('profiles')
+            .select('is_admin')
+            .eq('id', user.id)
+            .maybeSingle();
+          if (pData?.is_admin) {
+            isAdmin = true;
+            role = 'admin';
+          }
+        } catch {
+          // Ignore
+        }
+      }
+
+      // Check doctor_profiles table if not already identified as doctor
+      if (!isDoctor && !isAdmin) {
+        try {
+          const { data: dData } = await supabase
+            .from('doctor_profiles')
+            .select('id')
+            .eq('user_id', user.id)
+            .maybeSingle();
+          if (dData) {
+            isDoctor = true;
+            role = 'doctor';
+          }
+        } catch {
+          // Ignore
+        }
+      }
+
+      set({ 
+        user, 
+        profile: profileData, 
+        role,
+        isAdmin,
+        isDoctor,
+        initialized: true, 
+        loading: false 
+      });
     } catch (error) {
       console.error('Fatal error loading user:', error);
       set({ 
         user: null, 
         profile: null, 
+        role: 'patient',
+        isAdmin: false,
+        isDoctor: false,
         error: error instanceof Error ? error.message : 'Unknown error',
-        initialized: true,
+        initialized: true, 
         loading: false 
       });
     }
   },
   logout: async () => {
     try {
-      console.log('Logging out...');
       set({ loading: true });
-      
       await supabase.auth.signOut();
-      
-      // Clear all state
       set({ 
         user: null, 
         profile: null, 
+        role: 'patient',
+        isAdmin: false,
+        isDoctor: false,
         loading: false, 
         error: null,
         initialized: true
       });
-      
-      console.log('Logout complete');
     } catch (error) {
       console.error('Error during logout:', error);
-      // Still clear state even if logout fails
       set({ 
         user: null, 
         profile: null, 
+        role: 'patient',
+        isAdmin: false,
+        isDoctor: false,
         loading: false, 
         error: null,
         initialized: true
