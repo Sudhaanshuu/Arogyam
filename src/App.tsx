@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { useUserStore } from './lib/store';
 import { supabase } from './lib/supabase';
@@ -24,6 +24,63 @@ import DoctorRegistration from './components/DoctorRegistration';
 import VideoCallFeature from './components/VideoCallPage';
 import SEOHead from './components/SEOHead';
 import FAQSection from './components/FAQSection';
+
+const AppContent: React.FC = () => {
+  const location = useLocation();
+  const hideFooterRoutes = ['/messages', '/video-consultation', '/video-call'];
+  const shouldHideFooter = hideFooterRoutes.some(
+    (p) => location.pathname === p || location.pathname.startsWith(p + '/')
+  );
+
+  return (
+    <div className="min-h-screen bg-white flex flex-col justify-between">
+      <SEOHead />
+      <Toaster position="top-right" />
+      <Navbar />
+      
+      <main className="flex-1 flex flex-col">
+        <Routes>
+          <Route path="/" element={
+            <>
+              <Hero />
+              <ServiceCards />
+              <MedicineSearch />
+              <BestDoctors />
+              <NewsSlider />
+              <FAQSection />
+              <ContactUs />
+            </>
+          } />
+          <Route path="/admin" element={<AdminPanel />} />
+          <Route path="/doctor-registration" element={<DoctorRegistration />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/appointments" element={<AppointmentBooking />} />
+          <Route path="/medicines" element={<MedicineSearch />} />
+          <Route path="/doctors" element={<BestDoctors />} />
+          <Route path="/doctors/:id" element={<BestDoctors />} />
+          <Route path="/messages" element={<Messaging />} />
+          <Route path="/video-consultation" element={<VideoCallFeature />} />
+          <Route path="/video-call" element={<VideoCallFeature />} />
+          <Route path="/faq" element={<FAQSection />} />
+          <Route path="/reset-password" element={<Login />} />
+          {/* Fallback routes for footer links */}
+          <Route path="/about" element={<Hero />} />
+          <Route path="/services" element={<ServiceCards />} />
+          <Route path="/contact" element={<ContactUs />} />
+          <Route path="/telemedicine" element={<AppointmentBooking />} />
+          <Route path="/news" element={<NewsSlider />} />
+          <Route path="*" element={<Hero />} />
+        </Routes>
+      </main>
+      
+      {!shouldHideFooter && <Footer />}
+      {!shouldHideFooter && <Chatbot />}
+    </div>
+  );
+};
 
 function App() {
   const { loadUser, setUser, setProfile, setLoading } = useUserStore();
@@ -66,50 +123,7 @@ function App() {
 
   return (
     <Router>
-      <SEOHead />
-      <div className="min-h-screen bg-white">
-        <Toaster position="top-right" />
-        <Navbar />
-        
-        <Routes>
-          <Route path="/" element={
-            <>
-              <Hero />
-              <ServiceCards />
-              <MedicineSearch />
-              <BestDoctors />
-              <NewsSlider />
-              <FAQSection />
-              <ContactUs />
-            </>
-          } />
-          <Route path="/admin" element={<AdminPanel />} />
-          <Route path="/doctor-registration" element={<DoctorRegistration />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/verify-email" element={<VerifyEmail />} />
-          <Route path="/appointments" element={<AppointmentBooking />} />
-          <Route path="/medicines" element={<MedicineSearch />} />
-          <Route path="/doctors" element={<BestDoctors />} />
-          <Route path="/doctors/:id" element={<BestDoctors />} />
-          <Route path="/messages" element={<Messaging />} />
-          <Route path="/video-consultation" element={<VideoCallFeature />} />
-          <Route path="/video-call" element={<VideoCallFeature />} />
-          <Route path="/faq" element={<FAQSection />} />
-          <Route path="/reset-password" element={<Login />} />
-          {/* Fallback routes for footer links */}
-          <Route path="/about" element={<Hero />} />
-          <Route path="/services" element={<ServiceCards />} />
-          <Route path="/contact" element={<ContactUs />} />
-          <Route path="/telemedicine" element={<AppointmentBooking />} />
-          <Route path="/news" element={<NewsSlider />} />
-          <Route path="*" element={<Hero />} />
-        </Routes>
-        
-        <Footer />
-        <Chatbot />
-      </div>
+      <AppContent />
     </Router>
   );
 }

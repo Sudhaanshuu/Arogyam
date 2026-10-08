@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { MessageSquare, X, Send, Bot, Mic, Volume2, Sparkles, RefreshCw } from 'lucide-react';
 import { askMedicalAi } from '../lib/medicalAi';
@@ -25,7 +26,14 @@ const QUICK_TOPICS = [
 ];
 
 const Chatbot: React.FC = () => {
+  const location = useLocation();
   const [isOpen, setIsOpen] = useState(false);
+
+  // Excluded routes where floating AI assistant should not obstruct the UI
+  const isExcludedRoute = ['/messages', '/video-consultation', '/video-call'].some(
+    (p) => location.pathname === p || location.pathname.startsWith(p + '/')
+  );
+
   const [messages, setMessages] = useState<Message[]>([
     { 
       text: "Namaste! 🙏 I'm your Arogyam Health Assistant.\n\nAsk me about symptoms, doctor recommendations, Ayurvedic home remedies, or telemedicine appointments.", 
@@ -206,6 +214,10 @@ const Chatbot: React.FC = () => {
       );
     });
   };
+
+  if (isExcludedRoute) {
+    return null;
+  }
 
   return (
     <>
