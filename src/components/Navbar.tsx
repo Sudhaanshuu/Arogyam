@@ -65,11 +65,14 @@ const Navbar: React.FC = () => {
     { name: 'Video Call', path: '/video-consultation', icon: <Video className="w-5 h-5" /> },
   ];
 
+  const isHome = location.pathname === '/';
+  const showSolidNav = !isHome || scrolled;
+
   return (
     <nav 
-      className={`fixed w-full z-50 transition-all duration-300 ${
-        scrolled 
-          ? 'bg-white/90 backdrop-blur-md shadow-lg' 
+      className={`fixed top-0 left-0 w-full z-50 transition-all duration-200 ${
+        showSolidNav 
+          ? 'bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-200' 
           : 'bg-transparent'
       }`}
     >
