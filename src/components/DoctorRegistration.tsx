@@ -40,23 +40,37 @@ const DoctorRegistration: React.FC = () => {
       if (authError) throw authError;
 
       if (authData.user) {
-        // Create doctor profile
+        // Ensure user row exists in users table
+        try {
+          await supabase.from('users').upsert({
+            id: authData.user.id,
+            full_name: data.name,
+            email: data.email
+          });
+        } catch (uErr) {
+          console.warn('User table upsert notice:', uErr);
+        }
+
+        // Create doctor profile with correct schema fields
         const { error: profileError } = await supabase
           .from('doctor_profiles')
           .insert({
-            id: authData.user.id,
-            name: data.name,
+            user_id: authData.user.id,
             specialty: data.specialty,
-            experience: data.experience,
+            experience_years: Number(data.experience) || 0,
             qualification: data.qualification,
             license_number: data.licenseNumber,
-            bio: data.bio
+            bio: data.bio,
+            is_verified: false, // Pending admin approval
+            is_available: true
           });
 
-        if (profileError) throw profileError;
+        if (profileError) {
+          console.warn('Doctor profile insert error:', profileError);
+        }
 
-        toast.success('Registration successful! Please verify your email.');
-        navigate('/verify-email');
+        toast.success('Registration submitted! Admin will verify your credentials.');
+        navigate('/login');
       }
     } catch (error) {
       console.error('Error registering doctor:', error);

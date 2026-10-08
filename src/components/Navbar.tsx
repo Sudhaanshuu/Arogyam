@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, User, LogOut, Home, Calendar, MessageSquare, Pill, Search,Video } from 'lucide-react';
+import { Menu, X, User, LogOut, Home, Calendar, MessageSquare, Pill, Search, Video, ShieldCheck } from 'lucide-react';
 import { useUserStore } from '../lib/store';
 import { motion } from 'framer-motion';
 import { supabase } from '../lib/supabase'; // Import supabase client
@@ -9,7 +9,7 @@ const Navbar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [loading, setLoading] = useState(true);
-  const { user, logout, setUser, loadUser } = useUserStore();
+  const { user, logout, setUser, loadUser, isAdmin } = useUserStore();
   const location = useLocation();
 
   // Check for session on component mount and page refresh
@@ -91,14 +91,14 @@ const Navbar: React.FC = () => {
           </div>
           
           {/* Desktop Navigation */}
-          <div className="hidden md:flex md:items-center md:space-x-4">
+          <div className="hidden md:flex md:items-center md:space-x-3">
             {navLinks.map((link) => (
               <Link
                 key={link.path}
                 to={link.path}
                 className={`px-3 py-2 rounded-md text-sm font-medium flex items-center space-x-1 transition-colors ${
                   location.pathname === link.path
-                    ? 'text-white bg-gradient-to-r from-red-600 via-pink-500 to-orange-500'
+                    ? 'text-white bg-gradient-to-r from-red-600 via-pink-500 to-orange-500 shadow-xs'
                     : 'text-gray-700 hover:bg-red-50 hover:text-red-600'
                 }`}
               >
@@ -106,12 +106,27 @@ const Navbar: React.FC = () => {
                 <span>{link.name}</span>
               </Link>
             ))}
+
+            {/* Admin link for administrators or accessible route */}
+            {(isAdmin || (user && user.email?.includes('admin'))) && (
+              <Link
+                to="/admin"
+                className={`px-3 py-2 rounded-md text-sm font-semibold flex items-center space-x-1 transition-colors ${
+                  location.pathname === '/admin'
+                    ? 'bg-red-600 text-white'
+                    : 'text-red-700 bg-red-50 hover:bg-red-100 border border-red-200'
+                }`}
+              >
+                <ShieldCheck className="w-4 h-4" />
+                <span>Admin</span>
+              </Link>
+            )}
             
             {loading ? (
-              // Optional loading state
-              <div className="ml-4 h-10 w-20 bg-gray-100 animate-pulse rounded-md"></div>
+              // Loading state
+              <div className="ml-2 h-9 w-20 bg-gray-100 animate-pulse rounded-md"></div>
             ) : user ? (
-              <div className="ml-4 flex items-center">
+              <div className="ml-2 flex items-center space-x-2">
                 <Link
                   to="/profile"
                   className="px-3 py-2 rounded-md text-sm font-medium flex items-center space-x-1 text-gray-700 hover:bg-red-50 hover:text-red-600"
@@ -121,23 +136,23 @@ const Navbar: React.FC = () => {
                 </Link>
                 <button
                   onClick={handleLogout}
-                  className="ml-2 px-3 py-2 rounded-md text-sm font-medium flex items-center space-x-1 text-gray-700 hover:bg-red-50 hover:text-red-600"
+                  className="px-3 py-2 rounded-md text-sm font-medium flex items-center space-x-1 text-gray-700 hover:bg-red-50 hover:text-red-600"
                 >
                   <LogOut className="w-5 h-5" />
                   <span>Logout</span>
                 </button>
               </div>
             ) : (
-              <div className="ml-4 flex items-center space-x-2">
+              <div className="ml-2 flex items-center space-x-2">
                 <Link
                   to="/login"
-                  className="px-4 py-2 rounded-md text-sm font-medium border border-red-500 text-red-600 hover:bg-red-50"
+                  className="px-3.5 py-1.5 rounded-md text-sm font-medium border border-red-500 text-red-600 hover:bg-red-50"
                 >
                   Login
                 </Link>
                 <Link
                   to="/signup"
-                  className="px-4 py-2 rounded-md text-sm font-medium text-white bg-gradient-to-r from-red-600 via-pink-500 to-orange-500 hover:opacity-90"
+                  className="px-3.5 py-1.5 rounded-md text-sm font-medium text-white bg-gradient-to-r from-red-600 via-pink-500 to-orange-500 hover:opacity-90"
                 >
                   Sign Up
                 </Link>
@@ -190,6 +205,16 @@ const Navbar: React.FC = () => {
             <div className="h-10 w-full bg-gray-100 animate-pulse rounded-md my-2"></div>
           ) : user ? (
             <>
+              {(isAdmin || user.email?.includes('admin')) && (
+                <Link
+                  to="/admin"
+                  onClick={closeMenu}
+                  className="block px-3 py-2 rounded-md text-base font-semibold flex items-center space-x-2 text-red-700 bg-red-50 hover:bg-red-100"
+                >
+                  <ShieldCheck className="w-5 h-5 text-red-600" />
+                  <span>Admin Panel</span>
+                </Link>
+              )}
               <Link
                 to="/profile"
                 onClick={closeMenu}

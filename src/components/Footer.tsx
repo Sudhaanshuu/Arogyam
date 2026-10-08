@@ -10,12 +10,14 @@ const Footer: React.FC = () => {
           <div>
             <Link to="/" className="flex items-center">
               <span className="text-2xl font-bold bg-gradient-to-r from-red-600 via-pink-500 to-orange-500 text-transparent bg-clip-text">
-                Arogyam Kiosk
+                Arogyam
+              </span>
+              <span className="ml-2 text-xs px-2 py-0.5 rounded-full bg-red-100 text-red-600 font-semibold">
+                pixir.in
               </span>
             </Link>
-            <p className="mt-4 text-gray-600">
-              Connecting rural communities with quality healthcare through telemedicine.
-              Our mission is to make healthcare accessible to everyone, everywhere.
+            <p className="mt-4 text-gray-600 text-sm">
+              Advanced telemedicine platform by <a href="https://pixir.in" target="_blank" rel="noreferrer" className="text-red-600 font-semibold hover:underline">pixir.in</a>, connecting patients with verified doctors and authentic Ayurvedic medicines.
             </p>
             <div className="mt-6 flex space-x-4">
               {['facebook', 'twitter', 'instagram', 'linkedin'].map((social) => (
@@ -116,7 +118,7 @@ const Footer: React.FC = () => {
         
         <div className="mt-12 pt-8 border-t border-gray-200 flex flex-col md:flex-row justify-between items-center">
           <p className="text-gray-600 text-sm">
-            &copy; {new Date().getFullYear()} Arogyam Kiosk. All rights reserved.
+            &copy; {new Date().getFullYear()} Arogyam (arogyam.pixir.in). Part of Pixir. All rights reserved.
           </p>
           <div className="mt-4 md:mt-0 flex space-x-6">
             <Link to="/privacy" className="text-gray-600 hover:text-gray-900 text-sm transition-colors">

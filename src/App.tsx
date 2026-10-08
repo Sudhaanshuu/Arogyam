@@ -19,6 +19,7 @@ import Login from './components/Login';
 import Signup from './components/Signup';
 import Profile from './components/Profile';
 import VerifyEmail from './components/VerifyEmail';
+import AdminPanel from './components/AdminPanel';
 import DoctorRegistration from './components/DoctorRegistration';
 import VideoCallFeature from './components/VideoCallPage'; 
 
@@ -78,6 +79,7 @@ function App() {
               <ContactUs />
             </>
           } />
+          <Route path="/admin" element={<AdminPanel />} />
           <Route path="/doctor-registration" element={<DoctorRegistration />} />
           <Route path="/login" element={<Login />} />
           <Route path="/signup" element={<Signup />} />
@@ -86,9 +88,17 @@ function App() {
           <Route path="/appointments" element={<AppointmentBooking />} />
           <Route path="/medicines" element={<MedicineSearch />} />
           <Route path="/doctors" element={<BestDoctors />} />
+          <Route path="/doctors/:id" element={<BestDoctors />} />
           <Route path="/messages" element={<Messaging />} />
           <Route path="/video-consultation" element={<VideoCallFeature />} />
           <Route path="/reset-password" element={<Login />} />
+          {/* Fallback routes for footer links */}
+          <Route path="/about" element={<Hero />} />
+          <Route path="/services" element={<ServiceCards />} />
+          <Route path="/contact" element={<ContactUs />} />
+          <Route path="/telemedicine" element={<AppointmentBooking />} />
+          <Route path="/news" element={<NewsSlider />} />
+          <Route path="*" element={<Hero />} />
         </Routes>
         
         <Footer />

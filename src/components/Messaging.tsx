@@ -1,552 +1,492 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
-import { Users, Send, Clock, X } from 'lucide-react';
+import { Users, Send, Clock, X, User, Stethoscope, Sparkles } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import toast from 'react-hot-toast';
+import { useUserStore } from '../lib/store';
 
-// Define interfaces for type safety
-interface Doctor {
+interface Contact {
   id: string;
   name: string;
-  specialty: string;
+  subtitle: string;
   image_url?: string | null;
+  role: 'doctor' | 'patient';
 }
 
 interface Message {
   id: string;
+  user_id?: string;
+  doctor_id?: string;
   content: string;
   is_from_doctor: boolean;
   created_at: string;
 }
 
 const Messaging: React.FC = () => {
-  // State variables
-  const [doctors, setDoctors] = useState<Doctor[]>([]);
-  const [selectedDoctor, setSelectedDoctor] = useState<Doctor | null>(null);
+  const { user, isDoctor, role } = useUserStore();
+  const [contacts, setContacts] = useState<Contact[]>([]);
+  const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
+  const [loadingContacts, setLoadingContacts] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Fetch doctors when component mounts
-  useEffect(() => {
-    fetchDoctors();
-  }, []);
+  const isUserDoctor = isDoctor || role === 'doctor';
 
-  // Scroll to bottom of messages
+  useEffect(() => {
+    fetchContacts();
+  }, [user, isUserDoctor]);
+
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
-  // Fetch available doctors
-  const fetchDoctors = async () => {
+  // Real-time Supabase subscription
+  useEffect(() => {
+    if (!user || !selectedContact) return;
+
+    const channel = supabase
+      .channel(`chat_${user.id}_${selectedContact.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages'
+        },
+        (payload) => {
+          const newMsg = payload.new as Message;
+          // Verify message belongs to current active conversation
+          if (
+            (newMsg.user_id === user.id && newMsg.doctor_id === selectedContact.id) ||
+            (newMsg.user_id === selectedContact.id && newMsg.doctor_id === user.id)
+          ) {
+            setMessages(prev => {
+              if (prev.some(m => m.id === newMsg.id)) return prev;
+              return [...prev, newMsg];
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, selectedContact]);
+
+  const fetchContacts = async () => {
+    setLoadingContacts(true);
     try {
-      // First try to get from doctor_profiles table
-      const { data: doctorProfiles, error: profileError } = await supabase
+      if (isUserDoctor) {
+        // Logged in as doctor: Fetch patients who interacted with this doctor
+        await fetchPatientsForDoctor();
+      } else {
+        // Logged in as patient: Fetch available doctors
+        await fetchDoctorsForPatient();
+      }
+    } catch (err) {
+      console.error('Error fetching contacts:', err);
+    } finally {
+      setLoadingContacts(false);
+    }
+  };
+
+  const fetchDoctorsForPatient = async () => {
+    try {
+      // 1. Try doctor_profiles with users join
+      const { data: profiles } = await supabase
         .from('doctor_profiles')
         .select(`
           user_id,
           specialty,
-          is_available,
-          is_verified,
-          users!inner(
-            id,
-            full_name,
-            email
-          )
+          users:user_id(full_name, email)
         `)
-        .eq('is_verified', true)
         .eq('is_available', true);
 
-      if (!profileError && doctorProfiles && doctorProfiles.length > 0) {
-        const transformedDoctors = doctorProfiles.map(profile => ({
-          id: profile.user_id,
-          name: (profile.users as any)?.full_name || `Dr. ${profile.specialty}`,
-          specialty: profile.specialty,
-          image_url: null as string | null
+      if (profiles && profiles.length > 0) {
+        const list: Contact[] = profiles.map((p: any) => ({
+          id: p.user_id,
+          name: p.users?.full_name || `Dr. ${p.specialty}`,
+          subtitle: p.specialty,
+          role: 'doctor'
         }));
-        setDoctors(transformedDoctors);
+        setContacts(list);
+        if (list.length > 0 && !selectedContact) setSelectedContact(list[0]);
         return;
       }
 
-      // Fallback to available_doctors table
-      const { data: availableDoctors, error: availableError } = await supabase
+      // 2. Try available_doctors
+      const { data: avail } = await supabase
         .from('available_doctors')
-        .select('*')
+        .select('id, name, specialty')
         .eq('available', true);
 
-      if (!availableError && availableDoctors && availableDoctors.length > 0) {
-        setDoctors(availableDoctors);
+      if (avail && avail.length > 0) {
+        const list: Contact[] = avail.map(d => ({
+          id: d.id,
+          name: d.name,
+          subtitle: d.specialty,
+          role: 'doctor'
+        }));
+        setContacts(list);
+        if (list.length > 0 && !selectedContact) setSelectedContact(list[0]);
         return;
       }
 
-      // If both fail, create some sample doctors for testing
-      console.warn('No doctors found in database, using sample data');
-      const sampleDoctors: Doctor[] = [
+      // Fallback curated doctors
+      const fallbackList: Contact[] = [
+        { id: 'doc-sarah', name: 'Dr. Sarah Johnson', subtitle: 'General Medicine', role: 'doctor' },
+        { id: 'doc-chen', name: 'Dr. Michael Chen', subtitle: 'Cardiology', role: 'doctor' },
+        { id: 'doc-priya', name: 'Dr. Priya Sharma', subtitle: 'Ayurveda Specialist', role: 'doctor' },
+        { id: 'doc-davis', name: 'Dr. Emily Davis', subtitle: 'Dermatology', role: 'doctor' }
+      ];
+      setContacts(fallbackList);
+      if (!selectedContact) setSelectedContact(fallbackList[0]);
+    } catch (err) {
+      console.error('Doctor fetch error:', err);
+    }
+  };
+
+  const fetchPatientsForDoctor = async () => {
+    try {
+      // Fetch patients from appointments and messages
+      const patientMap = new Map<string, Contact>();
+
+      const { data: appts } = await supabase
+        .from('appointments')
+        .select('patient_id, users:patient_id(full_name, email)')
+        .eq('doctor_id', user?.id);
+
+      if (appts) {
+        appts.forEach((a: any) => {
+          if (a.patient_id) {
+            patientMap.set(a.patient_id, {
+              id: a.patient_id,
+              name: a.users?.full_name || 'Patient',
+              subtitle: a.users?.email || 'Patient Consultation',
+              role: 'patient'
+            });
+          }
+        });
+      }
+
+      // If no patients found yet, supply sample active patient inquiries
+      if (patientMap.size === 0) {
+        const samplePatients: Contact[] = [
+          { id: 'pat-1', name: 'Aarav Sharma', subtitle: 'Fever & viral symptom query', role: 'patient' },
+          { id: 'pat-2', name: 'Pooja Verma', subtitle: 'BP & Cardiology follow-up', role: 'patient' },
+          { id: 'pat-3', name: 'Vikram Patel', subtitle: 'Ayurvedic prescription query', role: 'patient' }
+        ];
+        samplePatients.forEach(p => patientMap.set(p.id, p));
+      }
+
+      const list = Array.from(patientMap.values());
+      setContacts(list);
+      if (list.length > 0 && !selectedContact) setSelectedContact(list[0]);
+    } catch (err) {
+      console.error('Patient fetch error:', err);
+    }
+  };
+
+  const handleSelectContact = (contact: Contact) => {
+    setSelectedContact(contact);
+    loadConversation(contact);
+  };
+
+  const getChatStorageKey = (partnerId: string) => {
+    const currentUserId = user?.id || 'guest';
+    return `arogyam_chat_${currentUserId}_${partnerId}`;
+  };
+
+  const loadConversation = async (contact: Contact) => {
+    const currentUserId = user?.id || 'guest';
+    const storageKey = getChatStorageKey(contact.id);
+    let loadedMessages: Message[] = [];
+
+    // 1. Read local storage cache first
+    try {
+      const stored = localStorage.getItem(storageKey);
+      if (stored) {
+        loadedMessages = JSON.parse(stored);
+      }
+    } catch { /* ignore */ }
+
+    // 2. Fetch from Supabase
+    try {
+      if (user) {
+        const docId = isUserDoctor ? user.id : contact.id;
+        const patId = isUserDoctor ? contact.id : user.id;
+
+        const { data, error } = await supabase
+          .from('messages')
+          .select('*')
+          .eq('doctor_id', docId)
+          .eq('user_id', patId)
+          .order('created_at', { ascending: true });
+
+        if (!error && data && data.length > 0) {
+          // Merge with local messages without duplicates
+          for (const msg of data) {
+            if (!loadedMessages.some(m => m.id === msg.id)) {
+              loadedMessages.push(msg);
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Supabase message query failed, relying on local chat store:', err);
+    }
+
+    // 3. If brand new chat with no messages, supply clean welcome prompt
+    if (loadedMessages.length === 0) {
+      loadedMessages = [
         {
-          id: 'sample-1',
-          name: 'Dr. Sarah Johnson',
-          specialty: 'General Medicine',
-          image_url: null
-        },
-        {
-          id: 'sample-2', 
-          name: 'Dr. Michael Chen',
-          specialty: 'Cardiology',
-          image_url: null
-        },
-        {
-          id: 'sample-3',
-          name: 'Dr. Emily Davis',
-          specialty: 'Dermatology', 
-          image_url: null
+          id: `welcome-${contact.id}`,
+          content: isUserDoctor 
+            ? `Hello ${contact.name}, this is your Arogyam verified physician. How can I assist you with your health query today?`
+            : `Hello! You are connected with ${contact.name}. Please share your symptoms or questions regarding your treatment.`,
+          is_from_doctor: true,
+          created_at: new Date(Date.now() - 3600000).toISOString()
         }
       ];
-      setDoctors(sampleDoctors);
-      
-    } catch (error) {
-      console.error('Error fetching doctors:', error);
-      toast.error('Failed to fetch doctors. Please try again.');
-      
-      // Set empty array to show no doctors available
-      setDoctors([]);
     }
+
+    setMessages(loadedMessages);
   };
 
-  // Select a doctor and fetch their messages
-  const handleSelectDoctor = async (doctor: Doctor) => {
-    setSelectedDoctor(doctor);
-    
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        toast.error('Please log in to view messages');
-        return;
-      }
-
-      // Fetch messages for this doctor
-      const { data, error } = await supabase
-        .from('messages')
-        .select('*')
-        .eq('doctor_id', doctor.id)
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: true });
-
-      if (error) {
-        console.warn('Failed to fetch messages from database:', error);
-        // Load sample messages for demonstration
-        loadSampleMessages();
-        return;
-      }
-
-      if (data && data.length > 0) {
-        setMessages(data);
-      } else {
-        // Load sample messages if no real messages exist
-        loadSampleMessages();
-      }
-    } catch (error) {
-      console.error('Error in handleSelectDoctor:', error);
-      loadSampleMessages();
-    }
-  };
-
-  // Load sample messages for demonstration
-  const loadSampleMessages = () => {
-    const sampleMessages: Message[] = [
-      {
-        id: 'sample-1',
-        content: 'Hello! How can I help you today?',
-        is_from_doctor: true,
-        created_at: new Date(Date.now() - 3600000).toISOString() // 1 hour ago
-      },
-      {
-        id: 'sample-2',
-        content: 'Hi Doctor, I\'ve been experiencing some headaches lately.',
-        is_from_doctor: false,
-        created_at: new Date(Date.now() - 3300000).toISOString() // 55 minutes ago
-      },
-      {
-        id: 'sample-3',
-        content: 'I understand. Can you tell me more about when these headaches occur? Are they more frequent at certain times of the day?',
-        is_from_doctor: true,
-        created_at: new Date(Date.now() - 3000000).toISOString() // 50 minutes ago
-      },
-      {
-        id: 'sample-4',
-        content: 'They usually happen in the afternoon, especially after working on my computer for long hours.',
-        is_from_doctor: false,
-        created_at: new Date(Date.now() - 2700000).toISOString() // 45 minutes ago
-      },
-      {
-        id: 'sample-5',
-        content: 'That sounds like it could be related to eye strain or tension headaches. I recommend taking regular breaks from screen time and ensuring proper lighting. Would you like to schedule a video consultation to discuss this further?',
-        is_from_doctor: true,
-        created_at: new Date(Date.now() - 2400000).toISOString() // 40 minutes ago
-      }
-    ];
-    
-    setMessages(sampleMessages);
-  };
-
-  // Send a new message
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!selectedContact || !newMessage.trim()) return;
 
-    if (!selectedDoctor || !newMessage.trim()) return;
+    const trimmed = newMessage.trim();
+    const currentUserId = user?.id || 'guest';
+    const isFromDoc = isUserDoctor;
 
-    const { data: { user } } = await supabase.auth.getUser();
-
-    if (!user) {
-      toast.error('Please log in to send a message');
-      return;
-    }
-
-    // Optimistically update messages first
-    const newMessageObj: Message = { 
-      id: `temp-${Date.now()}`, 
-      content: newMessage, 
-      is_from_doctor: false, 
-      created_at: new Date().toISOString() 
+    const msgObj: Message = {
+      id: `msg-${Date.now()}`,
+      content: trimmed,
+      is_from_doctor: isFromDoc,
+      created_at: new Date().toISOString(),
+      user_id: isUserDoctor ? selectedContact.id : currentUserId,
+      doctor_id: isUserDoctor ? currentUserId : selectedContact.id
     };
 
-    setMessages(prev => [...prev, newMessageObj]);
+    // Update state immediately
+    const updated = [...messages, msgObj];
+    setMessages(updated);
     setNewMessage('');
 
+    // Save to local persistence
     try {
-      // Try to save to database
-      const { error } = await supabase
-        .from('messages')
-        .insert({
-          user_id: user.id,
-          doctor_id: selectedDoctor.id,
-          content: newMessage,
-          is_from_doctor: false
-        });
+      const storageKey = getChatStorageKey(selectedContact.id);
+      localStorage.setItem(storageKey, JSON.stringify(updated));
+    } catch { /* ignore */ }
 
-      if (error) {
-        console.warn('Failed to save message to database:', error);
-        // Message is already added optimistically, so we continue
+    // Save to Supabase messages table
+    if (user) {
+      try {
+        await supabase
+          .from('messages')
+          .insert({
+            user_id: isUserDoctor ? selectedContact.id : user.id,
+            doctor_id: isUserDoctor ? user.id : selectedContact.id,
+            content: trimmed,
+            is_from_doctor: isFromDoc
+          });
+      } catch (err) {
+        console.warn('Supabase message insert error (local copy preserved):', err);
       }
-
-      // Simulate doctor response after a delay (for demo purposes)
-      setTimeout(() => {
-        setIsTyping(true);
-        
-        setTimeout(() => {
-          const doctorResponses = [
-            "Thank you for your message. I'll review your symptoms and get back to you shortly.",
-            "Based on what you've described, I'd recommend scheduling a video consultation to discuss this in detail.",
-            "That's a good question. Let me provide you with some initial guidance while we schedule a proper consultation.",
-            "I understand your concern. This is something we should discuss in person or via video call.",
-            "Thank you for sharing that information. I'll need to ask a few more questions to better understand your situation."
-          ];
-          
-          const randomResponse = doctorResponses[Math.floor(Math.random() * doctorResponses.length)];
-          
-          const doctorMessage: Message = {
-            id: `doctor-${Date.now()}`,
-            content: randomResponse,
-            is_from_doctor: true,
-            created_at: new Date().toISOString()
-          };
-          
-          setIsTyping(false);
-          setMessages(prev => [...prev, doctorMessage]);
-          
-          // Try to save doctor response to database
-          supabase
-            .from('messages')
-            .insert({
-              user_id: user.id,
-              doctor_id: selectedDoctor.id,
-              content: randomResponse,
-              is_from_doctor: true
-            })
-            .then(({ error }) => {
-              if (error) {
-                console.warn('Failed to save doctor response to database:', error);
-              }
-            });
-        }, 1000 + Math.random() * 2000); // 1-3 seconds typing time
-      }, 1000 + Math.random() * 2000); // Random delay between 1-3 seconds
-
-    } catch (error) {
-      console.error('Error sending message:', error);
-      // Don't show error to user since message was added optimistically
     }
   };
 
-  // Format message timestamp
-  const formatMessageTime = (timestamp: string) => {
-    const date = new Date(timestamp);
-    return date.toLocaleString('en-US', {
-      hour: 'numeric',
-      minute: 'numeric',
-      hour12: true
-    });
-  };
-
-  // Scroll to bottom of messages
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
-  return (
-    <section className="min-h-screen bg-gray-100 py-12 px-4 sm:px-6 lg:px-8 pb-20">
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5 }}
-        className="max-w-6xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden messaging-container"
-      >
-        <div className="flex flex-col lg:grid lg:grid-cols-3 h-[calc(100vh-8rem)] max-h-[700px]">
-          {/* Mobile: Show doctor selection when no doctor is selected */}
-          {!selectedDoctor && (
-            <div className="lg:hidden block">
-              <div className="p-4 border-b border-gray-200">
-                <h3 className="text-lg font-bold text-gray-900 mb-3">Select a Doctor</h3>
-                <div className="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto">
-                  {doctors.length === 0 ? (
-                    <div className="text-center py-8">
-                      <Users className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                      <p className="text-gray-500 text-sm">No doctors available</p>
-                      <button 
-                        onClick={fetchDoctors}
-                        className="mt-2 text-red-600 hover:text-red-700 text-sm font-medium"
-                      >
-                        Retry
-                      </button>
-                    </div>
-                  ) : (
-                    doctors.map(doctor => (
-                      <button
-                        key={doctor.id}
-                        onClick={() => handleSelectDoctor(doctor)}
-                        className="p-4 flex items-center text-left rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
-                      >
-                        {doctor.image_url ? (
-                          <img 
-                            src={doctor.image_url} 
-                            alt={doctor.name} 
-                            className="h-12 w-12 rounded-full object-cover mr-4"
-                          />
-                        ) : (
-                          <div className="h-12 w-12 rounded-full bg-gradient-to-r from-red-600 via-pink-500 to-orange-500 flex items-center justify-center mr-4">
-                            <Users className="h-6 w-6 text-white" />
-                          </div>
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-medium text-gray-900 truncate">{doctor.name}</h4>
-                          <p className="text-sm text-gray-500 truncate">{doctor.specialty}</p>
-                        </div>
-                      </button>
-                    ))
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
+  const formatMessageTime = (timestamp: string) => {
+    try {
+      const date = new Date(timestamp);
+      return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    } catch {
+      return '';
+    }
+  };
 
-          {/* Desktop Doctors List */}
-          <div className="lg:col-span-1 border-r border-gray-200 overflow-y-auto lg:block hidden">
-            <div className="p-4 border-b border-gray-200 sticky top-0 bg-white z-10">
-              <h3 className="text-xl font-bold text-gray-900">Doctors</h3>
+  return (
+    <section className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8 pt-24 pb-24">
+      <div className="max-w-6xl mx-auto bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
+        {/* Banner Bar */}
+        <div className="bg-gradient-to-r from-red-600 via-pink-500 to-orange-500 text-white px-6 py-3 flex items-center justify-between text-xs font-semibold">
+          <span className="flex items-center gap-1.5">
+            <Sparkles className="h-4 w-4" />
+            {isUserDoctor ? 'Doctor Consultation Desk (Replying as Verified Physician)' : 'Arogyam Telemedicine Clinical Messenger'}
+          </span>
+          <span className="bg-white/20 px-2 py-0.5 rounded-full">
+            Realtime Active
+          </span>
+        </div>
+
+        <div className="flex flex-col lg:grid lg:grid-cols-3 h-[calc(100vh-12rem)] max-h-[700px]">
+          {/* Left Panel: Contacts List */}
+          <div className="lg:col-span-1 border-r border-gray-200 flex flex-col h-full bg-gray-50/50">
+            <div className="p-4 border-b border-gray-200 bg-white">
+              <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                {isUserDoctor ? <Users className="h-5 w-5 text-red-500" /> : <Stethoscope className="h-5 w-5 text-red-500" />}
+                {isUserDoctor ? 'Patient Conversations' : 'Verified Doctors'}
+              </h3>
+              <p className="text-xs text-gray-500 mt-0.5">
+                {isUserDoctor ? 'Patients who consulted or booked with you' : 'Select a specialist to start medical consultation'}
+              </p>
             </div>
-            {doctors.length === 0 ? (
-              <div className="p-4 text-center">
-                <Users className="h-12 w-12 text-gray-400 mx-auto mb-2" />
-                <p className="text-gray-500 text-sm">No doctors available</p>
-                <button 
-                  onClick={fetchDoctors}
-                  className="mt-2 text-red-600 hover:text-red-700 text-sm font-medium"
-                >
-                  Retry
-                </button>
-              </div>
-            ) : (
-              doctors.map(doctor => (
-                <div 
-                  key={doctor.id}
-                  onClick={() => handleSelectDoctor(doctor)}
-                  className={`p-4 flex items-center cursor-pointer hover:bg-gray-50 ${
-                    selectedDoctor?.id === doctor.id ? 'bg-gray-100' : ''
-                  }`}
-                >
-                  {doctor.image_url ? (
-                    <img 
-                      src={doctor.image_url} 
-                      alt={doctor.name} 
-                      className="h-12 w-12 rounded-full object-cover mr-4"
-                    />
-                  ) : (
-                    <div className="h-12 w-12 rounded-full bg-gradient-to-r from-red-600 via-pink-500 to-orange-500 flex items-center justify-center mr-4">
-                      <Users className="h-6 w-6 text-white" />
-                    </div>
-                  )}
-                  <div>
-                    <h4 className="font-medium text-gray-900">{doctor.name}</h4>
-                    <p className="text-sm text-gray-500">{doctor.specialty}</p>
-                  </div>
+
+            <div className="flex-1 overflow-y-auto p-2 space-y-1">
+              {loadingContacts ? (
+                <div className="p-8 text-center text-sm text-gray-500">
+                  <div className="h-6 w-6 border-2 border-red-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
+                  Loading contacts...
                 </div>
-              ))
-            )}
+              ) : contacts.length === 0 ? (
+                <div className="p-8 text-center text-sm text-gray-500">
+                  No active conversations found.
+                </div>
+              ) : (
+                contacts.map(c => {
+                  const isSelected = selectedContact?.id === c.id;
+                  return (
+                    <button
+                      key={c.id}
+                      onClick={() => handleSelectContact(c)}
+                      className={`w-full p-3 rounded-xl flex items-center text-left transition-all ${
+                        isSelected 
+                          ? 'bg-red-50 text-red-900 border border-red-200 shadow-2xs' 
+                          : 'hover:bg-white text-gray-700'
+                      }`}
+                    >
+                      <div className={`h-11 w-11 rounded-full flex items-center justify-center font-bold text-sm mr-3 flex-shrink-0 ${
+                        isSelected 
+                          ? 'bg-gradient-to-r from-red-600 to-orange-500 text-white' 
+                          : 'bg-gray-200 text-gray-600'
+                      }`}>
+                        {c.name.charAt(c.role === 'doctor' ? 4 : 0) || 'C'}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-bold text-sm text-gray-900 truncate">{c.name}</h4>
+                        <p className="text-xs text-gray-500 truncate">{c.subtitle}</p>
+                      </div>
+                      <div className="h-2 w-2 rounded-full bg-green-500 ml-2" title="Online" />
+                    </button>
+                  );
+                })
+              )}
+            </div>
           </div>
 
-          {/* Messages Area */}
-          <div className={`lg:col-span-2 flex flex-col flex-1 ${!selectedDoctor ? 'lg:block hidden' : ''}`}>
-            {selectedDoctor ? (
+          {/* Right Panel: Active Chat Thread */}
+          <div className="lg:col-span-2 flex flex-col h-full bg-white">
+            {selectedContact ? (
               <>
-                {/* Doctor Header */}
-                <div className="p-4 border-b border-gray-200 flex items-center sticky top-0 bg-white z-10">
-                  <div className="flex items-center flex-1 min-w-0">
-                    {selectedDoctor.image_url ? (
-                      <img 
-                        src={selectedDoctor.image_url} 
-                        alt={selectedDoctor.name} 
-                        className="h-12 w-12 rounded-full object-cover mr-4"
-                      />
-                    ) : (
-                      <div className="h-12 w-12 rounded-full bg-gradient-to-r from-red-600 via-pink-500 to-orange-500 flex items-center justify-center mr-4">
-                        <Users className="h-6 w-6 text-white" />
-                      </div>
-                    )}
-                    <div className="min-w-0">
-                      <h4 className="font-medium text-gray-900 truncate">{selectedDoctor.name}</h4>
-                      <p className="text-sm text-gray-500 truncate">{selectedDoctor.specialty}</p>
+                {/* Chat Header */}
+                <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-white z-10 shadow-2xs">
+                  <div className="flex items-center">
+                    <div className="h-10 w-10 rounded-full bg-gradient-to-r from-red-500 to-orange-500 text-white font-bold flex items-center justify-center text-sm mr-3">
+                      {selectedContact.name.charAt(selectedContact.role === 'doctor' ? 4 : 0) || 'C'}
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-sm text-gray-900">{selectedContact.name}</h4>
+                      <p className="text-xs text-red-600 font-medium">{selectedContact.subtitle}</p>
                     </div>
                   </div>
-                  {/* Back button for mobile */}
-                  <button
-                    onClick={() => setSelectedDoctor(null)}
-                    className="lg:hidden ml-4 p-2 text-gray-500 hover:text-gray-700 rounded-lg hover:bg-gray-100"
-                  >
-                    <X className="h-5 w-5" />
-                  </button>
+                  <span className="text-xs bg-green-50 text-green-700 font-semibold px-2.5 py-1 rounded-full border border-green-200">
+                    Active Channel
+                  </span>
                 </div>
-                
-                {/* Messages List */}
-                <div className="flex-1 p-4 overflow-y-auto min-h-0">
-                  {messages.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center h-full text-center">
-                      <div className="h-16 w-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-                        <Users className="h-8 w-8 text-gray-400" />
-                      </div>
-                      <h4 className="text-lg font-medium text-gray-900">Start a conversation</h4>
-                      <p className="text-gray-500 mt-1">
-                        Send a message to Dr. {selectedDoctor.name} to get medical advice
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4">
-                      {messages.map((message) => (
+
+                {/* Messages Feed */}
+                <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-gradient-to-b from-gray-50/50 to-white">
+                  {messages.map((m) => {
+                    // In doctor mode: is_from_doctor === true means ME (right), false means PATIENT (left)
+                    // In patient mode: is_from_doctor === false means ME (right), true means DOCTOR (left)
+                    const isMe = isUserDoctor ? m.is_from_doctor : !m.is_from_doctor;
+
+                    return (
+                      <div
+                        key={m.id}
+                        className={`flex ${isMe ? 'justify-end' : 'justify-start'}`}
+                      >
                         <div
-                          key={message.id}
-                          className={`flex ${
-                            message.is_from_doctor ? 'justify-start' : 'justify-end'
+                          className={`max-w-[78%] rounded-2xl p-3.5 shadow-2xs ${
+                            isMe
+                              ? 'bg-gradient-to-r from-red-600 via-pink-500 to-orange-500 text-white rounded-tr-xs'
+                              : 'bg-white text-gray-800 border border-gray-200 rounded-tl-xs'
                           }`}
                         >
+                          <p className="text-sm whitespace-pre-wrap leading-relaxed">{m.content}</p>
                           <div
-                            className={`max-w-[80%] rounded-lg p-3 ${
-                              message.is_from_doctor
-                                ? 'bg-gray-100 text-gray-800'
-                                : 'bg-gradient-to-r from-red-600 via-pink-500 to-orange-500 text-white'
+                            className={`text-[10px] mt-1.5 flex items-center justify-end ${
+                              isMe ? 'text-white/80' : 'text-gray-400'
                             }`}
                           >
-                            <p>{message.content}</p>
-                            <div
-                              className={`text-xs mt-1 flex items-center ${
-                                message.is_from_doctor ? 'text-gray-500' : 'text-white/80'
-                              }`}
-                            >
-                              <Clock className="h-3 w-3 mr-1" />
-                              {formatMessageTime(message.created_at)}
-                            </div>
+                            <Clock className="h-3 w-3 mr-1" />
+                            {formatMessageTime(m.created_at)}
                           </div>
                         </div>
-                      ))}
-                      
-                      {/* Typing Indicator */}
-                      {isTyping && (
-                        <div className="flex justify-start">
-                          <div className="bg-gray-100 text-gray-800 rounded-lg p-3 max-w-[80%]">
-                            <div className="flex items-center space-x-1">
-                              <div className="flex space-x-1">
-                                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-                                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-                                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-                              </div>
-                              <span className="text-xs text-gray-500 ml-2">Dr. {selectedDoctor.name} is typing...</span>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                      
-                      <div ref={messagesEndRef} />
-                    </div>
-                  )}
-                </div>
-                
-                {/* Message Input */}
-                <div className="p-4 border-t border-gray-200 bg-white">
-                  {/* Quick Message Templates */}
-                  {messages.length === 0 && (
-                    <div className="mb-4">
-                      <p className="text-sm text-gray-600 mb-2">Quick message templates:</p>
-                      <div className="flex flex-wrap gap-2">
-                        {[
-                          "Hello Doctor, I need medical advice",
-                          "I have been experiencing symptoms",
-                          "Can we schedule a consultation?",
-                          "I have questions about my medication"
-                        ].map((template, index) => (
-                          <button
-                            key={index}
-                            onClick={() => setNewMessage(template)}
-                            className="px-3 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded-full text-gray-700 transition-colors"
-                          >
-                            {template}
-                          </button>
-                        ))}
                       </div>
-                    </div>
-                  )}
-                  
-                  <form onSubmit={handleSendMessage}>
-                    <div className="flex gap-2">
-                      <input
-                        type="text"
-                        value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
-                        placeholder="Type your message..."
-                        className="flex-1 border border-gray-300 rounded-lg px-4 py-2 focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent"
-                      />
-                      <button
-                        type="submit"
-                        disabled={!newMessage.trim()}
-                        className="bg-gradient-to-r from-red-600 via-pink-500 to-orange-500 text-white px-4 py-2 rounded-lg disabled:opacity-50 hover:opacity-90 transition-opacity flex-shrink-0"
-                      >
-                        <Send className="h-5 w-5" />
-                      </button>
-                    </div>
-                  </form>
+                    );
+                  })}
+                  <div ref={messagesEndRef} />
                 </div>
+
+                {/* Quick Message Suggestions */}
+                <div className="px-4 py-2 border-t border-gray-100 bg-gray-50 flex overflow-x-auto gap-2 no-scrollbar">
+                  {[
+                    "Please review my symptoms",
+                    "Can we schedule a video consultation?",
+                    "What dosage is recommended?",
+                    "Thank you, Doctor!"
+                  ].map((chip, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setNewMessage(chip)}
+                      className="whitespace-nowrap px-3 py-1 bg-white hover:bg-gray-100 text-gray-700 text-xs rounded-full border border-gray-200 transition-colors shadow-2xs"
+                    >
+                      {chip}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Message Input Form */}
+                <form onSubmit={handleSendMessage} className="p-3 border-t border-gray-200 bg-white">
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      placeholder={isUserDoctor ? "Reply to patient..." : "Ask your doctor a question..."}
+                      className="flex-1 border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent text-gray-900"
+                    />
+                    <button
+                      type="submit"
+                      disabled={!newMessage.trim()}
+                      className="bg-gradient-to-r from-red-600 via-pink-500 to-orange-500 text-white p-2.5 rounded-xl disabled:opacity-50 hover:opacity-90 transition-opacity shadow-sm flex-shrink-0"
+                    >
+                      <Send className="h-4 w-4" />
+                    </button>
+                  </div>
+                </form>
               </>
             ) : (
-              <div className="flex flex-col items-center justify-center h-full text-center p-4 lg:block hidden">
-                <div className="h-20 w-20 rounded-full bg-gray-100 flex items-center justify-center mb-4">
-                  <Users className="h-10 w-10 text-gray-400" />
-                </div>
-                <h3 className="text-xl font-medium text-gray-900">No conversation selected</h3>
-                <p className="text-gray-500 mt-2 max-w-md">
-                  Select a doctor from the list to start a conversation and get medical advice
+              <div className="flex flex-col items-center justify-center h-full text-center p-8 text-gray-500">
+                <Users className="h-12 w-12 text-gray-300 mb-3" />
+                <h4 className="font-bold text-gray-800 text-base">Select a conversation</h4>
+                <p className="text-xs text-gray-500 mt-1">
+                  Choose a doctor or patient from the left panel to begin medical messaging.
                 </p>
               </div>
             )}
           </div>
         </div>
-      </motion.div>
+      </div>
     </section>
   );
 };

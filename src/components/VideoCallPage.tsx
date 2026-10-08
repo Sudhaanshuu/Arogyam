@@ -1,16 +1,24 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Video, Users } from 'lucide-react';
 import VideoCall from './VideoCall';
 import { useUserStore } from '../lib/store';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 const VideoCallPage: React.FC = () => {
   const { user } = useUserStore();
   const navigate = useNavigate();
-  const [roomId, setRoomId] = useState('');
+  const [searchParams] = useSearchParams();
+  const roomParam = searchParams.get('room') || '';
+  const [roomId, setRoomId] = useState(roomParam);
   const [isInCall, setIsInCall] = useState(false);
+
+  useEffect(() => {
+    if (roomParam) {
+      setRoomId(roomParam);
+    }
+  }, [roomParam]);
 
   const joinRoom = (e: React.FormEvent) => {
     e.preventDefault();
