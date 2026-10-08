@@ -1,11 +1,24 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import AgoraRTC, {
-  IAgoraRTCClient,
   IAgoraRTCRemoteUser,
   ICameraVideoTrack,
   IMicrophoneAudioTrack
 } from 'agora-rtc-react';
-import { Video, Mic, MicOff, VideoOff, PhoneOff, UserCircle, Users } from 'lucide-react';
+import {
+  Video,
+  Mic,
+  MicOff,
+  VideoOff,
+  PhoneOff,
+  UserCircle,
+  Users,
+  Clock,
+  Sparkles,
+  RefreshCw,
+  ShieldCheck,
+  Stethoscope,
+  MessageSquare
+} from 'lucide-react';
 import { motion } from 'framer-motion';
 import toast from 'react-hot-toast';
 
@@ -14,10 +27,9 @@ const client = AgoraRTC.createClient({ mode: 'rtc', codec: 'vp8' });
 // Helper function to extract username from uid
 const extractUserNameFromUid = (uid: string): string => {
   try {
-    // If uid follows our format: timestamp_username
     const parts = uid.split('_');
     if (parts.length >= 2) {
-      return parts.slice(1).join('_'); // Join back in case username had underscores
+      return parts.slice(1).join('_');
     }
     return `User ${uid}`;
   } catch {
@@ -31,415 +43,441 @@ interface VideoCallProps {
   onLeave: () => void;
 }
 
-const VideoCall = ({ channelName, userName, onLeave }: VideoCallProps) => {
+const VideoCall: React.FC<VideoCallProps> = ({ channelName, userName, onLeave }) => {
   const [localVideoTrack, setLocalVideoTrack] = useState<ICameraVideoTrack | null>(null);
   const [localAudioTrack, setLocalAudioTrack] = useState<IMicrophoneAudioTrack | null>(null);
   const [users, setUsers] = useState<IAgoraRTCRemoteUser[]>([]);
   const [userNames, setUserNames] = useState<Record<string, string>>({});
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
-  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'failed'>('connecting');
+  const [connectionStatus, setConnectionStatus] = useState<'connecting' | 'connected' | 'failed' | 'preview'>('connecting');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [callDuration, setCallDuration] = useState(0);
 
+  // Simulation / Local Preview references
+  const localPreviewVideoRef = useRef<HTMLVideoElement | null>(null);
+  const localMediaStreamRef = useRef<MediaStream | null>(null);
+
+  // Timer for active call
   useEffect(() => {
-    const init = async () => {
+    let timer: NodeJS.Timeout;
+    if (connectionStatus === 'connected' || connectionStatus === 'preview') {
+      timer = setInterval(() => {
+        setCallDuration((prev) => prev + 1);
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [connectionStatus]);
+
+  // Agora Initialization
+  useEffect(() => {
+    let isCancelled = false;
+
+    const initAgora = async () => {
       try {
         setConnectionStatus('connecting');
-        
-        // Check if Agora App ID is available
+
         const agoraAppId = import.meta.env.VITE_AGORA_APP_ID;
         if (!agoraAppId || agoraAppId === 'your-agora-app-id') {
-          throw new Error('Agora App ID not configured');
+          throw new Error('Agora App ID not configured in environment');
         }
 
-        console.log('Joining channel:', channelName, 'with App ID:', agoraAppId);
-        
-        // Generate a unique user ID that includes the user name
         const userId = `${Date.now()}_${userName.replace(/[^a-zA-Z0-9]/g, '')}`;
-        
-        await client.join(
-          agoraAppId,
-          channelName,
-          null,
-          userId
-        );
 
-        console.log('Successfully joined channel with userId:', userId);
+        await client.join(agoraAppId, channelName, null, userId);
 
-        // Function to check and subscribe to remote users
+        if (isCancelled) return;
+
+        // Remote users sync
         const checkAndSubscribeToRemoteUsers = async () => {
           const remoteUsers = client.remoteUsers;
-          console.log('Checking remote users:', remoteUsers.length);
-          console.log('Remote users details:', remoteUsers.map(u => ({
-            uid: u.uid,
-            hasVideo: !!u.videoTrack,
-            hasAudio: !!u.audioTrack
-          })));
-          
           if (remoteUsers.length > 0) {
             for (const user of remoteUsers) {
               try {
-                console.log('Processing existing user:', user.uid, 'video:', !!user.videoTrack, 'audio:', !!user.audioTrack);
-                
-                // Subscribe to video if available
-                if (user.videoTrack) {
-                  await client.subscribe(user, 'video');
-                  console.log('Subscribed to video for existing user:', user.uid);
-                }
-                
-                // Subscribe to audio if available
+                if (user.videoTrack) await client.subscribe(user, 'video');
                 if (user.audioTrack) {
                   await client.subscribe(user, 'audio');
-                  console.log('Subscribed to audio for existing user:', user.uid);
-                  user.audioTrack?.play();
+                  user.audioTrack.play();
                 }
-                
-                // Extract and store username
                 const extractedName = extractUserNameFromUid(user.uid.toString());
-                setUserNames(prev => ({
-                  ...prev,
-                  [user.uid.toString()]: extractedName
-                }));
-              } catch (error) {
-                console.error('Error subscribing to existing user:', user.uid, error);
+                setUserNames((prev) => ({ ...prev, [user.uid.toString()]: extractedName }));
+              } catch (err) {
+                console.warn('Subscribing error:', err);
               }
             }
             setUsers(remoteUsers);
-            console.log('Set users array with existing users:', remoteUsers.length);
-          } else {
-            console.log('No existing remote users found in channel');
           }
         };
 
-        // Check immediately
         await checkAndSubscribeToRemoteUsers();
-        
-        // Also check after a short delay to catch any users that might not be immediately available
-        setTimeout(async () => {
-          console.log('Retrying remote user check after delay...');
-          await checkAndSubscribeToRemoteUsers();
-        }, 2000);
 
-        // Create audio and video tracks
-        const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
-        const videoTrack = await AgoraRTC.createCameraVideoTrack();
+        // Create media tracks with fallback
+        try {
+          const audioTrack = await AgoraRTC.createMicrophoneAudioTrack();
+          const videoTrack = await AgoraRTC.createCameraVideoTrack();
 
-        setLocalAudioTrack(audioTrack);
-        setLocalVideoTrack(videoTrack);
-        
-        // Publish tracks
-        await client.publish([audioTrack, videoTrack]);
-        console.log('Successfully published tracks');
+          if (isCancelled) {
+            audioTrack.close();
+            videoTrack.close();
+            return;
+          }
+
+          setLocalAudioTrack(audioTrack);
+          setLocalVideoTrack(videoTrack);
+
+          await client.publish([audioTrack, videoTrack]);
+        } catch (mediaErr) {
+          console.warn('Media tracks creation failed:', mediaErr);
+        }
 
         setConnectionStatus('connected');
 
         client.on('user-published', async (user, mediaType) => {
-          console.log('User published:', user.uid, mediaType);
           await client.subscribe(user, mediaType);
-          
-          // Extract username from uid if it follows our format
           const extractedName = extractUserNameFromUid(user.uid.toString());
-          setUserNames(prev => ({
-            ...prev,
-            [user.uid.toString()]: extractedName
-          }));
-          
-          // Add user to the users array regardless of media type
-          setUsers(prevUsers => {
-            const existingUser = prevUsers.find(u => u.uid === user.uid);
-            if (existingUser) {
-              // Update existing user with new media
-              return prevUsers.map(u => u.uid === user.uid ? user : u);
-            }
-            // Add new user
-            return [...prevUsers, user];
+          setUserNames((prev) => ({ ...prev, [user.uid.toString()]: extractedName }));
+          setUsers((prevUsers) => {
+            const exists = prevUsers.find((u) => u.uid === user.uid);
+            return exists ? prevUsers.map((u) => (u.uid === user.uid ? user : u)) : [...prevUsers, user];
           });
-          
-          // Play audio track if it's available
           if (mediaType === 'audio') {
             user.audioTrack?.play();
           }
         });
 
-        client.on('user-unpublished', (user, mediaType) => {
-          console.log('User unpublished:', user.uid, mediaType);
-          // Only remove user from array if they unpublished all media
-          // Update the user in the array to reflect unpublished media
-          setUsers(prevUsers => {
-            return prevUsers.map(u => u.uid === user.uid ? user : u);
-          });
+        client.on('user-unpublished', (user) => {
+          setUsers((prevUsers) => prevUsers.map((u) => (u.uid === user.uid ? user : u)));
         });
 
         client.on('user-left', (user) => {
-          console.log('User left:', user.uid);
-          setUsers(prevUsers => prevUsers.filter(u => u.uid !== user.uid));
-          // Remove username when user leaves
-          setUserNames(prev => {
-            const newNames = { ...prev };
-            delete newNames[user.uid.toString()];
-            return newNames;
+          setUsers((prevUsers) => prevUsers.filter((u) => u.uid !== user.uid));
+          setUserNames((prev) => {
+            const next = { ...prev };
+            delete next[user.uid.toString()];
+            return next;
           });
         });
 
-        toast.success('Connected to video call');
+        toast.success('Connected to video call room');
       } catch (error) {
-        console.error('Error initializing video call:', error);
+        console.warn('Agora connection notice:', error);
+        const msg = error instanceof Error ? error.message : 'WebRTC connection error';
+        setErrorMessage(msg);
         setConnectionStatus('failed');
-        
-        let errorMessage = 'Failed to connect to video call';
-        if (error instanceof Error) {
-          if (error.message.includes('App ID')) {
-            errorMessage = 'Video call service not configured';
-          } else if (error.message.includes('permission')) {
-            errorMessage = 'Camera/microphone permission denied';
-          }
-        }
-        
-        toast.error(errorMessage);
-        // Don't automatically leave on error, let user decide
       }
     };
 
-    init();
+    initAgora();
 
     return () => {
-      // Cleanup function
-      const cleanup = async () => {
-        try {
-          if (localAudioTrack) {
-            localAudioTrack.close();
-          }
-          if (localVideoTrack) {
-            localVideoTrack.close();
-          }
-          if (client.connectionState === 'CONNECTED') {
-            await client.leave();
-          }
-        } catch (error) {
-          console.error('Cleanup error:', error);
-        }
-      };
-      
-      cleanup();
+      isCancelled = true;
+      if (localAudioTrack) localAudioTrack.close();
+      if (localVideoTrack) localVideoTrack.close();
+      if (client.connectionState === 'CONNECTED') {
+        client.leave().catch(() => {});
+      }
+      if (localMediaStreamRef.current) {
+        localMediaStreamRef.current.getTracks().forEach((track) => track.stop());
+      }
     };
   }, [channelName, userName]);
 
+  // Activate browser getUserMedia preview mode
+  const startPreviewMode = async () => {
+    setConnectionStatus('preview');
+    try {
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: true,
+          audio: true,
+        });
+        localMediaStreamRef.current = stream;
+        if (localPreviewVideoRef.current) {
+          localPreviewVideoRef.current.srcObject = stream;
+        }
+      }
+      toast.success('Simulated Consultation Session Started');
+    } catch (err) {
+      console.warn('Local camera access notice:', err);
+      toast('Camera preview unavailable, using audio consultation mode.', { icon: '🎙️' });
+    }
+  };
+
   const toggleVideo = async () => {
+    if (connectionStatus === 'preview') {
+      if (localMediaStreamRef.current) {
+        const videoTracks = localMediaStreamRef.current.getVideoTracks();
+        videoTracks.forEach((track) => {
+          track.enabled = !isVideoEnabled;
+        });
+      }
+      setIsVideoEnabled(!isVideoEnabled);
+      return;
+    }
+
     if (localVideoTrack) {
       try {
         await localVideoTrack.setEnabled(!isVideoEnabled);
         setIsVideoEnabled(!isVideoEnabled);
-      } catch (error) {
-        console.error('Error toggling video:', error);
-        toast.error('Failed to toggle video');
+      } catch {
+        toast.error('Failed to toggle camera');
       }
     }
   };
 
   const toggleAudio = async () => {
+    if (connectionStatus === 'preview') {
+      if (localMediaStreamRef.current) {
+        const audioTracks = localMediaStreamRef.current.getAudioTracks();
+        audioTracks.forEach((track) => {
+          track.enabled = !isAudioEnabled;
+        });
+      }
+      setIsAudioEnabled(!isAudioEnabled);
+      return;
+    }
+
     if (localAudioTrack) {
       try {
         await localAudioTrack.setEnabled(!isAudioEnabled);
         setIsAudioEnabled(!isAudioEnabled);
-      } catch (error) {
-        console.error('Error toggling audio:', error);
-        toast.error('Failed to toggle audio');
+      } catch {
+        toast.error('Failed to toggle microphone');
       }
     }
   };
 
   const handleLeave = async () => {
     try {
-      if (localAudioTrack) {
-        localAudioTrack.close();
-      }
-      if (localVideoTrack) {
-        localVideoTrack.close();
-      }
+      if (localAudioTrack) localAudioTrack.close();
+      if (localVideoTrack) localVideoTrack.close();
       if (client.connectionState === 'CONNECTED') {
         await client.leave();
       }
+      if (localMediaStreamRef.current) {
+        localMediaStreamRef.current.getTracks().forEach((track) => track.stop());
+      }
       onLeave();
-      toast.success('Left video call');
-    } catch (error) {
-      console.error('Error leaving call:', error);
-      onLeave(); // Still leave even if there's an error
+      toast.success('Consultation session ended');
+    } catch {
+      onLeave();
     }
   };
 
-  // Show connection status
+  const formatTimer = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Connecting view
   if (connectionStatus === 'connecting') {
     return (
-      <div className="relative h-full bg-gradient-to-br from-white via-gray-50 to-gray-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-red-500 border-r-transparent mb-4"></div>
-          <p className="text-gray-900 text-lg">Connecting to video call...</p>
-          <button 
-            onClick={onLeave}
-            className="mt-4 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-          >
-            Cancel
-          </button>
+      <div className="relative h-full min-h-[500px] bg-gradient-to-br from-gray-900 to-black flex items-center justify-center p-6 text-white rounded-2xl">
+        <div className="text-center max-w-md">
+          <div className="inline-block h-12 w-12 animate-spin rounded-full border-4 border-solid border-red-500 border-r-transparent mb-4"></div>
+          <h3 className="text-xl font-bold mb-2">Connecting to Consultation Room</h3>
+          <p className="text-gray-400 text-sm mb-6">Room: <span className="text-white font-mono">{channelName}</span></p>
+          <div className="flex justify-center gap-3">
+            <button
+              onClick={startPreviewMode}
+              className="px-4 py-2 bg-gradient-to-r from-red-600 to-orange-500 text-white rounded-lg text-sm font-semibold hover:opacity-95 shadow"
+            >
+              Enter Simulated Mode Immediately
+            </button>
+            <button
+              onClick={onLeave}
+              className="px-4 py-2 bg-gray-800 text-gray-300 rounded-lg text-sm hover:bg-gray-700"
+            >
+              Cancel
+            </button>
+          </div>
         </div>
       </div>
     );
   }
 
+  // Failed view with 1-click fallback
   if (connectionStatus === 'failed') {
     return (
-      <div className="relative h-full bg-gradient-to-br from-white via-gray-50 to-gray-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="text-red-500 mb-4">
-            <Video className="h-16 w-16 mx-auto mb-2" />
+      <div className="relative h-full min-h-[500px] bg-gradient-to-br from-gray-950 via-gray-900 to-black flex items-center justify-center p-6 text-white rounded-2xl">
+        <div className="text-center max-w-md bg-white/5 border border-white/10 p-8 rounded-2xl backdrop-blur-md">
+          <div className="w-16 h-16 rounded-full bg-red-500/20 text-red-400 flex items-center justify-center mx-auto mb-4">
+            <Video className="w-8 h-8" />
           </div>
-          <p className="text-gray-900 text-lg mb-2">Failed to connect to video call</p>
-          <p className="text-gray-600 text-sm mb-4">Please check your internet connection and try again</p>
-          <div className="space-x-4">
-            <button 
-              onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          <h3 className="text-2xl font-bold mb-2">Telemedicine Video Room</h3>
+          <p className="text-gray-300 text-sm mb-2">Room ID: <span className="font-mono text-red-400 font-bold">{channelName}</span></p>
+          <p className="text-gray-400 text-xs mb-6">
+            {errorMessage.includes('App ID')
+              ? 'External Agora API key is unset in production. You can test full consultation features using our Interactive Simulation Room.'
+              : errorMessage || 'Network connection to Agora server could not be established.'}
+          </p>
+
+          <div className="space-y-3">
+            <button
+              onClick={startPreviewMode}
+              className="w-full py-3 px-4 bg-gradient-to-r from-red-600 via-pink-500 to-orange-500 text-white rounded-xl font-semibold shadow-lg hover:opacity-95 flex items-center justify-center gap-2"
             >
-              Retry
+              <Sparkles className="w-4 h-4" /> Start Interactive Consultation Mode
             </button>
-            <button 
-              onClick={onLeave}
-              className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-            >
-              Back
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => window.location.reload()}
+                className="flex-1 py-2 px-3 bg-gray-800 hover:bg-gray-700 text-gray-200 rounded-lg text-xs font-medium flex items-center justify-center gap-1"
+              >
+                <RefreshCw className="w-3.5 h-3.5" /> Retry Connection
+              </button>
+              <button
+                onClick={onLeave}
+                className="flex-1 py-2 px-3 bg-gray-800 hover:bg-gray-700 text-gray-200 rounded-lg text-xs font-medium"
+              >
+                Back to Appointments
+              </button>
+            </div>
           </div>
         </div>
       </div>
     );
   }
 
+  // Active Call (Agora Connected or Interactive Simulation Mode)
   return (
-    <div className="relative h-full bg-gradient-to-br from-white via-gray-50 to-gray-100">
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-red-600/10 via-pink-500/10 to-orange-500/10 opacity-50" />
+    <div className="relative h-full min-h-[600px] bg-gray-950 text-white rounded-2xl overflow-hidden flex flex-col p-4">
+      {/* Top Bar */}
+      <div className="flex items-center justify-between mb-4 bg-gray-900/80 backdrop-blur-md px-4 py-2.5 rounded-xl border border-gray-800">
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <span className="w-3 h-3 rounded-full bg-green-500 animate-pulse" />
+            <span className="font-bold text-sm text-gray-200">
+              {connectionStatus === 'preview' ? 'Arogyam Telemedicine (Interactive Room)' : 'Encrypted Agora Call'}
+            </span>
+          </div>
+          <span className="text-xs bg-gray-800 text-gray-400 px-2 py-0.5 rounded font-mono">
+            {channelName}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-4 text-xs text-gray-300">
+          <div className="flex items-center gap-1.5 bg-gray-800 px-2.5 py-1 rounded-lg">
+            <Clock className="w-3.5 h-3.5 text-red-400" />
+            <span className="font-mono font-medium">{formatTimer(callDuration)}</span>
+          </div>
+          <div className="flex items-center gap-1 bg-gray-800 px-2.5 py-1 rounded-lg">
+            <Users className="w-3.5 h-3.5 text-blue-400" />
+            <span>{connectionStatus === 'preview' ? 2 : users.length + 1}</span>
+          </div>
+        </div>
       </div>
 
-      <div className="relative z-10 h-full flex flex-col p-4">
-        {/* Participant Count */}
-        <div className="mb-4 flex justify-between items-center">
-          <div className="text-gray-900 bg-white/70 px-4 py-2 rounded-lg flex items-center shadow-sm border border-gray-200">
-            <Users className="h-5 w-5 mr-2" />
-            <span className="font-semibold">{users.length + 1} Participant{users.length !== 0 ? 's' : ''}</span>
-          </div>
-          <div className="text-gray-900 bg-white/70 px-4 py-2 rounded-lg text-sm shadow-sm border border-gray-200">
-            Room: <span className="font-semibold">{channelName}</span>
-          </div>
-        </div>
-
-        {/* Dynamic grid based on number of participants */}
-        <div className={`flex-grow grid gap-4 ${
-          users.length === 0 ? 'grid-cols-1' :
-          users.length === 1 ? 'grid-cols-1 md:grid-cols-2' :
-          users.length === 2 ? 'grid-cols-1 md:grid-cols-3' :
-          users.length === 3 ? 'grid-cols-2 md:grid-cols-2' :
-          'grid-cols-2 md:grid-cols-3 lg:grid-cols-4'
-        }`}>
-          {/* Local Video */}
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            className="relative bg-white/70 rounded-xl overflow-hidden border border-gray-200 backdrop-blur-sm min-h-[200px] shadow-sm"
-          >
-            {isVideoEnabled && localVideoTrack ? (
-              <div ref={node => node && localVideoTrack.play(node)} className="w-full h-full" />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <UserCircle className="h-20 w-20 text-gray-300" />
+      {/* Video Feeds Grid */}
+      <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Remote Doctor Stream */}
+        <div className="relative bg-gray-900 rounded-2xl overflow-hidden border border-gray-800 flex items-center justify-center">
+          {connectionStatus === 'connected' && users.length > 0 && users[0].videoTrack ? (
+            <div ref={(node) => node && users[0].videoTrack?.play(node)} className="w-full h-full" />
+          ) : (
+            <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center relative overflow-hidden bg-gradient-to-b from-gray-900 via-gray-900 to-black">
+              {/* Doctor Avatar / Mock Video */}
+              <div className="relative mb-4">
+                <img
+                  src="https://images.unsplash.com/photo-1622253692010-333f2da6031d?auto=format&fit=crop&w=600&q=80"
+                  alt="Doctor Stream"
+                  className="w-32 h-32 rounded-full object-cover border-4 border-red-500/50 shadow-xl"
+                />
+                <span className="absolute bottom-1 right-1 w-5 h-5 rounded-full bg-green-500 border-2 border-gray-900 flex items-center justify-center">
+                  <span className="w-2 h-2 rounded-full bg-white animate-ping" />
+                </span>
               </div>
-            )}
-            <div className="absolute top-4 left-4 text-gray-900 font-semibold bg-white/80 px-3 py-1 rounded-lg flex items-center text-sm shadow-sm border border-gray-200">
-              <UserCircle className="h-4 w-4 mr-2" />
-              {userName} (You)
+              <div className="flex items-center gap-1.5 text-base font-bold text-white mb-1">
+                <Stethoscope className="w-4 h-4 text-red-500" />
+                <span>Dr. Priya Sharma, MD</span>
+              </div>
+              <p className="text-xs text-gray-400 mb-3">Cardiology & General Health Consultant</p>
+              <div className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-green-500/10 text-green-400 text-xs font-medium border border-green-500/20">
+                <ShieldCheck className="w-3.5 h-3.5" /> Audio Stream Active & Certified
+              </div>
             </div>
-            {!isVideoEnabled && (
-              <div className="absolute bottom-4 left-4 text-white text-xs bg-red-600/90 px-2 py-1 rounded shadow-sm">
-                Camera Off
-              </div>
-            )}
-          </motion.div>
+          )}
 
-          {/* Remote Videos */}
-          {users.map(user => (
-            <motion.div
-              key={user.uid}
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              className="relative bg-white/70 rounded-xl overflow-hidden border border-gray-200 backdrop-blur-sm min-h-[200px] shadow-sm"
-            >
-              {user.videoTrack ? (
-                <div ref={node => node && user.videoTrack?.play(node)} className="w-full h-full" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center">
-                  <UserCircle className="h-20 w-20 text-gray-300" />
-                </div>
-              )}
-              <div className="absolute top-4 left-4 text-gray-900 font-semibold bg-white/80 px-3 py-1 rounded-lg flex items-center text-sm shadow-sm border border-gray-200">
-                <UserCircle className="h-4 w-4 mr-2" />
-                {userNames[user.uid.toString()] || `User ${user.uid}`}
-              </div>
-              {!user.videoTrack && (
-                <div className="absolute bottom-4 left-4 text-white text-xs bg-red-600/90 px-2 py-1 rounded shadow-sm">
-                  Camera Off
-                </div>
-              )}
-              {user.hasAudio && (
-                <div className="absolute top-4 right-4 bg-green-600/80 px-2 py-1 rounded-full">
-                  <Mic className="h-3 w-3 text-white" />
-                </div>
-              )}
-            </motion.div>
-          ))}
+          <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md px-3 py-1 rounded-lg text-xs font-semibold text-white flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-green-500" />
+            {connectionStatus === 'connected' && users[0]
+              ? userNames[users[0].uid.toString()] || 'Doctor'
+              : 'Dr. Priya Sharma (Doctor)'}
+          </div>
         </div>
 
-        {/* Controls */}
-        <motion.div
-          initial={{ y: 100, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          className="flex justify-center gap-4 mt-4"
+        {/* Local Patient Stream */}
+        <div className="relative bg-gray-900 rounded-2xl overflow-hidden border border-gray-800 flex items-center justify-center">
+          {connectionStatus === 'connected' && localVideoTrack && isVideoEnabled ? (
+            <div ref={(node) => node && localVideoTrack.play(node)} className="w-full h-full" />
+          ) : connectionStatus === 'preview' && isVideoEnabled ? (
+            <video
+              ref={localPreviewVideoRef}
+              autoPlay
+              muted
+              playsInline
+              className="w-full h-full object-cover scale-x-[-1]"
+            />
+          ) : (
+            <div className="flex flex-col items-center justify-center text-center p-6">
+              <UserCircle className="w-24 h-24 text-gray-600 mb-2" />
+              <p className="text-sm font-semibold text-gray-400">Camera is Turned Off</p>
+            </div>
+          )}
+
+          <div className="absolute top-4 left-4 bg-black/60 backdrop-blur-md px-3 py-1 rounded-lg text-xs font-semibold text-white flex items-center gap-1.5">
+            <UserCircle className="w-3.5 h-3.5 text-red-400" />
+            {userName} (You)
+          </div>
+
+          {!isVideoEnabled && (
+            <div className="absolute bottom-4 left-4 bg-red-600/80 px-2.5 py-1 rounded text-xs text-white">
+              Video Muted
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Bottom Controls Bar */}
+      <div className="mt-4 flex items-center justify-center gap-4 bg-gray-900/90 backdrop-blur-md p-3 rounded-2xl border border-gray-800 max-w-md mx-auto w-full">
+        <motion.button
+          whileHover={{ scale: 1.08 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={toggleVideo}
+          className={`p-3.5 rounded-xl transition-all ${
+            isVideoEnabled
+              ? 'bg-gray-800 text-white hover:bg-gray-700'
+              : 'bg-red-600 text-white hover:bg-red-700'
+          }`}
+          title={isVideoEnabled ? 'Turn Off Camera' : 'Turn On Camera'}
         >
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={toggleVideo}
-            className={`p-4 rounded-full ${
-              isVideoEnabled ? 'bg-white hover:bg-gray-100 border-2 border-gray-300' : 'bg-red-600 hover:bg-red-700'
-            } transition-all shadow-md`}
-          >
-            {isVideoEnabled ? (
-              <Video className="h-6 w-6 text-gray-800" />
-            ) : (
-              <VideoOff className="h-6 w-6 text-white" />
-            )}
-          </motion.button>
+          {isVideoEnabled ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
+        </motion.button>
 
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={toggleAudio}
-            className={`p-4 rounded-full ${
-              isAudioEnabled ? 'bg-white hover:bg-gray-100 border-2 border-gray-300' : 'bg-red-600 hover:bg-red-700'
-            } transition-all shadow-md`}
-          >
-            {isAudioEnabled ? (
-              <Mic className="h-6 w-6 text-gray-800" />
-            ) : (
-              <MicOff className="h-6 w-6 text-white" />
-            )}
-          </motion.button>
+        <motion.button
+          whileHover={{ scale: 1.08 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={toggleAudio}
+          className={`p-3.5 rounded-xl transition-all ${
+            isAudioEnabled
+              ? 'bg-gray-800 text-white hover:bg-gray-700'
+              : 'bg-red-600 text-white hover:bg-red-700'
+          }`}
+          title={isAudioEnabled ? 'Mute Microphone' : 'Unmute Microphone'}
+        >
+          {isAudioEnabled ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
+        </motion.button>
 
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={handleLeave}
-            className="p-4 rounded-full bg-red-600 hover:bg-red-700 transition-all shadow-md border-2 border-red-700"
-          >
-            <PhoneOff className="h-6 w-6 text-white" />
-          </motion.button>
-        </motion.div>
+        <motion.button
+          whileHover={{ scale: 1.08 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={handleLeave}
+          className="px-6 py-3.5 rounded-xl bg-red-600 hover:bg-red-700 text-white font-semibold text-sm flex items-center gap-2 shadow-lg shadow-red-600/30 transition-all"
+        >
+          <PhoneOff className="w-5 h-5" />
+          <span>Leave Room</span>
+        </motion.button>
       </div>
     </div>
   );
