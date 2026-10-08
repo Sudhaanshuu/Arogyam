@@ -1,0 +1,55 @@
+{
+  "short_name": "Arogyam",
+  "name": "Arogyam - Telemedicine & Online Doctor Consultations",
+  "description": "Consult verified specialist doctors online, join HD video consultations, and search authentic Ayurvedic medicines across India. Powered by pixir.in.",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/png"
+    },
+    {
+      "src": "/logo.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/logo.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#ffffff",
+  "theme_color": "#ef4444",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "en-IN",
+  "categories": ["medical", "health", "lifestyle"],
+  "shortcuts": [
+    {
+      "name": "Book Appointment",
+      "short_name": "Appointments",
+      "description": "Book a consultation with verified doctors",
+      "url": "/appointments",
+      "icons": [{ "src": "/logo.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Ayurvedic Medicines",
+      "short_name": "Medicines",
+      "description": "Search authentic Ayurvedic medicines",
+      "url": "/medicines",
+      "icons": [{ "src": "/logo.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Video Consultation",
+      "short_name": "Video Call",
+      "description": "Join your live doctor consultation room",
+      "url": "/video-consultation",
+      "icons": [{ "src": "/logo.png", "sizes": "192x192" }]
+    }
+  ]
+}

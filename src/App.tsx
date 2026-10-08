@@ -21,7 +21,9 @@ import Profile from './components/Profile';
 import VerifyEmail from './components/VerifyEmail';
 import AdminPanel from './components/AdminPanel';
 import DoctorRegistration from './components/DoctorRegistration';
-import VideoCallFeature from './components/VideoCallPage'; 
+import VideoCallFeature from './components/VideoCallPage';
+import SEOHead from './components/SEOHead';
+import FAQSection from './components/FAQSection';
 
 function App() {
   const { loadUser, setUser, setProfile, setLoading } = useUserStore();
@@ -64,6 +66,7 @@ function App() {
 
   return (
     <Router>
+      <SEOHead />
       <div className="min-h-screen bg-white">
         <Toaster position="top-right" />
         <Navbar />
@@ -76,6 +79,7 @@ function App() {
               <MedicineSearch />
               <BestDoctors />
               <NewsSlider />
+              <FAQSection />
               <ContactUs />
             </>
           } />
@@ -91,6 +95,8 @@ function App() {
           <Route path="/doctors/:id" element={<BestDoctors />} />
           <Route path="/messages" element={<Messaging />} />
           <Route path="/video-consultation" element={<VideoCallFeature />} />
+          <Route path="/video-call" element={<VideoCallFeature />} />
+          <Route path="/faq" element={<FAQSection />} />
           <Route path="/reset-password" element={<Login />} />
           {/* Fallback routes for footer links */}
           <Route path="/about" element={<Hero />} />

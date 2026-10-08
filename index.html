@@ -9,25 +9,43 @@
     <!-- Canonical URL -->
     <link rel="canonical" href="https://arogyam.pixir.in/" />
 
-    <!-- Favicon -->
+    <!-- PWA & Mobile Icons -->
+    <link rel="manifest" href="/manifest.json" />
     <link rel="icon" type="image/png" href="/logo.png" />
     <link rel="apple-touch-icon" href="/logo.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="Arogyam" />
+
+    <!-- Performance & Preconnect -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="dns-prefetch" href="https://images.unsplash.com" />
+
+    <!-- Geo Metadata -->
+    <meta name="geo.region" content="IN-OR" />
+    <meta name="geo.placename" content="Bhubaneswar" />
+    <meta name="geo.position" content="20.2961;85.8245" />
+    <meta name="ICBM" content="20.2961, 85.8245" />
 
     <!-- Primary Meta Tags -->
     <meta name="title" content="Arogyam - Telemedicine & Online Doctor Consultation | pixir.in" />
     <meta name="description" content="Arogyam by pixir.in connects patients across India with verified specialist doctors, live HD video consultations, Ayurvedic medicine search, and clinic discovery." />
-    <meta name="keywords" content="Arogyam, pixir, arogyam pixir, telemedicine India, online doctor consultation, Ayurvedic medicine, book doctor appointment, video consultation doctor, healthcare kiosk, Odisha telemedicine" />
+    <meta name="keywords" content="Arogyam, pixir, arogyam pixir, telemedicine India, online doctor consultation, Ayurvedic medicine, book doctor appointment, video consultation doctor, healthcare kiosk, Odisha telemedicine, AI health assistant" />
     <meta name="author" content="Pixir (pixir.in)" />
-    <meta name="robots" content="index, follow" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
     <meta name="theme-color" content="#ef4444" />
 
     <!-- Open Graph / Facebook / WhatsApp -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://arogyam.pixir.in/" />
-    <meta property="og:site_name" content="Arogyam - pixir.in" />
+    <meta property="og:site_name" content="Arogyam Telemedicine - pixir.in" />
     <meta property="og:title" content="Arogyam - Telemedicine & Healthcare Platform | pixir.in" />
     <meta property="og:description" content="Connect with top-rated medical specialists and Ayurvedic practitioners across India. Book video consultations and search authentic medicines." />
     <meta property="og:image" content="https://arogyam.pixir.in/logo.png" />
+    <meta property="og:image:width" content="512" />
+    <meta property="og:image:height" content="512" />
+    <meta property="og:locale" content="en_IN" />
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image" />
@@ -36,7 +54,7 @@
     <meta name="twitter:description" content="Accessible healthcare and telemedicine consultations from the comfort of your home. Powered by pixir.in." />
     <meta name="twitter:image" content="https://arogyam.pixir.in/logo.png" />
 
-    <!-- Schema.org JSON-LD Structured Data -->
+    <!-- Schema.org JSON-LD Structured Data: MedicalOrganization -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -66,6 +84,71 @@
         "Ayurveda",
         "Orthopedics",
         "Psychiatry"
+      ]
+    }
+    </script>
+
+    <!-- Schema.org JSON-LD: WebSite & SearchAction -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "Arogyam",
+      "url": "https://arogyam.pixir.in",
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": "https://arogyam.pixir.in/medicines?q={search_term_string}",
+        "query-input": "required name=search_term_string"
+      }
+    }
+    </script>
+
+    <!-- Schema.org JSON-LD: FAQPage -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "How do online doctor consultations work on Arogyam?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Browse verified doctors by specialty or location, select your preferred date and time, and receive an instant video room link. At your appointment time, join the encrypted HD video consultation directly in your browser without downloading extra software."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Are the doctors on Arogyam verified and certified?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Every doctor on Arogyam undergoes medical license and credential verification by the administrative board before their profile is approved for patient consultations."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I search and check availability of authentic Ayurvedic medicines?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Arogyam includes an authentic Ayurvedic medicine search engine covering traditional formulations such as Triphala, Ashwagandha, Chyawanprash, Brahmi, and Giloy with verified indications and delivery inquiries."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How does the Arogyam 24/7 AI Medical Assistant work?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "The Arogyam AI Assistant provides immediate symptom analysis, triage guidance, specialist recommendations, and emergency triage protocols. It is powered by state-of-the-art medical models and features an emergency 108/112 alert banner."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is Arogyam associated with pixir.in?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes, Arogyam (arogyam.pixir.in) is the digital healthcare and telemedicine initiative developed and powered by Pixir (pixir.in) to provide accessible medical care across urban and rural India."
+          }
+        }
       ]
     }
     </script>
