@@ -1,4 +1,4 @@
-﻿# Arogyam Kiosk
+﻿# Arogyam-Kiosk
 
 Arogyam Kiosk is a futuristic, modern sci-fi themed web application designed to help rural communities book telemedicine appointments with doctors. The platform provides essential healthcare features, including video consultations, medicine searches, and doctor messaging, all within a simple and functional UI.
 
